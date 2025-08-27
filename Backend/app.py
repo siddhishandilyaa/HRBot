@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timedelta
 import random
 
-app = Flask(__name__,template_folder="../Front end")
+app = Flask(__name__,template_folder="../Front end",static_folder="../Front end/static")
 CORS(app)
 
 # Enhanced user credentials with Indian employee data
