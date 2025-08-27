@@ -7,91 +7,101 @@ import random
 app = Flask(__name__)
 CORS(app)
 
-# Enhanced user credentials with employee data
+# Enhanced user credentials with Indian employee data
 USERS = {
     "admin": {"password": "password123", "role": "admin", "emp_id": "EMP001"},
     "hr": {"password": "hrpass", "role": "hr", "emp_id": "EMP002"},
-    "john.doe": {"password": "john123", "role": "employee", "emp_id": "EMP003"},
-    "jane.smith": {"password": "jane123", "role": "employee", "emp_id": "EMP004"},
-    "mike.johnson": {"password": "mike123", "role": "manager", "emp_id": "EMP005"},
-    "sarah.wilson": {"password": "sarah123", "role": "employee", "emp_id": "EMP006"},
-    "david.brown": {"password": "david123", "role": "employee", "emp_id": "EMP007"},
-    "emily.davis": {"password": "emily123", "role": "employee", "emp_id": "EMP008"},
-    "alex.miller": {"password": "alex123", "role": "employee", "emp_id": "EMP009"},
-    "lisa.garcia": {"password": "lisa123", "role": "employee", "emp_id": "EMP010"},
-    "tom.anderson": {"password": "tom123", "role": "employee", "emp_id": "EMP011"},
-    "anna.taylor": {"password": "anna123", "role": "manager", "emp_id": "EMP012"},
-    "chris.white": {"password": "chris123", "role": "employee", "emp_id": "EMP013"},
-    "maya.lee": {"password": "maya123", "role": "employee", "emp_id": "EMP014"},
-    "ryan.clark": {"password": "ryan123", "role": "employee", "emp_id": "EMP015"}
+    "rajesh.kumar": {"password": "rajesh123", "role": "employee", "emp_id": "EMP003"},
+    "priya.sharma": {"password": "priya123", "role": "employee", "emp_id": "EMP004"},
+    "amit.gupta": {"password": "amit123", "role": "manager", "emp_id": "EMP005"},
+    "sneha.patel": {"password": "sneha123", "role": "employee", "emp_id": "EMP006"},
+    "vikram.singh": {"password": "vikram123", "role": "employee", "emp_id": "EMP007"},
+    "kavya.reddy": {"password": "kavya123", "role": "employee", "emp_id": "EMP008"},
+    "arjun.nair": {"password": "arjun123", "role": "employee", "emp_id": "EMP009"},
+    "ananya.joshi": {"password": "ananya123", "role": "employee", "emp_id": "EMP010"},
+    "rahul.verma": {"password": "rahul123", "role": "employee", "emp_id": "EMP011"},
+    "pooja.agarwal": {"password": "pooja123", "role": "manager", "emp_id": "EMP012"},
+    "karthik.menon": {"password": "karthik123", "role": "employee", "emp_id": "EMP013"},
+    "deepika.iyer": {"password": "deepika123", "role": "employee", "emp_id": "EMP014"},
+    "rohit.malhotra": {"password": "rohit123", "role": "employee", "emp_id": "EMP015"}
 }
 
-# Mock employee database
+# Mock employee database with Indian names
 EMPLOYEE_DATA = {
+    "EMP001": {
+        "name": "Suresh Raina", "department": "Administration", "position": "Administrator",
+        "manager": "CEO", "hire_date": "2020-01-01", "salary": 120000,
+        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+91-98765-43201"
+    },
+    "EMP002": {
+        "name": "Meera Krishnan", "department": "Human Resources", "position": "HR Manager",
+        "manager": "CEO", "hire_date": "2020-02-01", "salary": 100000,
+        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+91-98765-43202"
+    },
     "EMP003": {
-        "name": "John Doe", "department": "Engineering", "position": "Software Developer",
-        "manager": "Mike Johnson", "hire_date": "2022-03-15", "salary": 75000,
-        "leave_balance": {"annual": 18, "sick": 8}, "phone": "+1-555-0103"
+        "name": "Rajesh Kumar", "department": "Engineering", "position": "Software Developer",
+        "manager": "Amit Gupta", "hire_date": "2022-03-15", "salary": 75000,
+        "leave_balance": {"annual": 18, "sick": 8}, "phone": "+91-98765-43203"
     },
     "EMP004": {
-        "name": "Jane Smith", "department": "Marketing", "position": "Marketing Specialist",
-        "manager": "Anna Taylor", "hire_date": "2021-07-20", "salary": 65000,
-        "leave_balance": {"annual": 15, "sick": 6}, "phone": "+1-555-0104"
+        "name": "Priya Sharma", "department": "Marketing", "position": "Marketing Specialist",
+        "manager": "Pooja Agarwal", "hire_date": "2021-07-20", "salary": 65000,
+        "leave_balance": {"annual": 15, "sick": 6}, "phone": "+91-98765-43204"
     },
     "EMP005": {
-        "name": "Mike Johnson", "department": "Engineering", "position": "Engineering Manager",
-        "manager": "Admin", "hire_date": "2020-01-10", "salary": 95000,
-        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+1-555-0105"
+        "name": "Amit Gupta", "department": "Engineering", "position": "Engineering Manager",
+        "manager": "Suresh Raina", "hire_date": "2020-01-10", "salary": 95000,
+        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+91-98765-43205"
     },
     "EMP006": {
-        "name": "Sarah Wilson", "department": "Finance", "position": "Financial Analyst",
-        "manager": "Anna Taylor", "hire_date": "2023-01-08", "salary": 70000,
-        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+1-555-0106"
+        "name": "Sneha Patel", "department": "Finance", "position": "Financial Analyst",
+        "manager": "Pooja Agarwal", "hire_date": "2023-01-08", "salary": 70000,
+        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+91-98765-43206"
     },
     "EMP007": {
-        "name": "David Brown", "department": "Engineering", "position": "Senior Developer",
-        "manager": "Mike Johnson", "hire_date": "2019-11-12", "salary": 85000,
-        "leave_balance": {"annual": 12, "sick": 4}, "phone": "+1-555-0107"
+        "name": "Vikram Singh", "department": "Engineering", "position": "Senior Developer",
+        "manager": "Amit Gupta", "hire_date": "2019-11-12", "salary": 85000,
+        "leave_balance": {"annual": 12, "sick": 4}, "phone": "+91-98765-43207"
     },
     "EMP008": {
-        "name": "Emily Davis", "department": "HR", "position": "HR Coordinator",
-        "manager": "HR", "hire_date": "2022-09-05", "salary": 55000,
-        "leave_balance": {"annual": 16, "sick": 7}, "phone": "+1-555-0108"
+        "name": "Kavya Reddy", "department": "HR", "position": "HR Coordinator",
+        "manager": "Meera Krishnan", "hire_date": "2022-09-05", "salary": 55000,
+        "leave_balance": {"annual": 16, "sick": 7}, "phone": "+91-98765-43208"
     },
     "EMP009": {
-        "name": "Alex Miller", "department": "Sales", "position": "Sales Representative",
-        "manager": "Anna Taylor", "hire_date": "2023-06-01", "salary": 60000,
-        "leave_balance": {"annual": 20, "sick": 9}, "phone": "+1-555-0109"
+        "name": "Arjun Nair", "department": "Sales", "position": "Sales Representative",
+        "manager": "Pooja Agarwal", "hire_date": "2023-06-01", "salary": 60000,
+        "leave_balance": {"annual": 20, "sick": 9}, "phone": "+91-98765-43209"
     },
     "EMP010": {
-        "name": "Lisa Garcia", "department": "Design", "position": "UX Designer",
-        "manager": "Mike Johnson", "hire_date": "2021-12-03", "salary": 72000,
-        "leave_balance": {"annual": 14, "sick": 5}, "phone": "+1-555-0110"
+        "name": "Ananya Joshi", "department": "Design", "position": "UX Designer",
+        "manager": "Amit Gupta", "hire_date": "2021-12-03", "salary": 72000,
+        "leave_balance": {"annual": 14, "sick": 5}, "phone": "+91-98765-43210"
     },
     "EMP011": {
-        "name": "Tom Anderson", "department": "Operations", "position": "Operations Specialist",
-        "manager": "Anna Taylor", "hire_date": "2020-08-17", "salary": 58000,
-        "leave_balance": {"annual": 19, "sick": 8}, "phone": "+1-555-0111"
+        "name": "Rahul Verma", "department": "Operations", "position": "Operations Specialist",
+        "manager": "Pooja Agarwal", "hire_date": "2020-08-17", "salary": 58000,
+        "leave_balance": {"annual": 19, "sick": 8}, "phone": "+91-98765-43211"
     },
     "EMP012": {
-        "name": "Anna Taylor", "department": "Management", "position": "Department Manager",
-        "manager": "Admin", "hire_date": "2018-04-22", "salary": 90000,
-        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+1-555-0112"
+        "name": "Pooja Agarwal", "department": "Management", "position": "Department Manager",
+        "manager": "Suresh Raina", "hire_date": "2018-04-22", "salary": 90000,
+        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+91-98765-43212"
     },
     "EMP013": {
-        "name": "Chris White", "department": "IT", "position": "System Administrator",
-        "manager": "Mike Johnson", "hire_date": "2022-11-30", "salary": 68000,
-        "leave_balance": {"annual": 17, "sick": 6}, "phone": "+1-555-0113"
+        "name": "Karthik Menon", "department": "IT", "position": "System Administrator",
+        "manager": "Amit Gupta", "hire_date": "2022-11-30", "salary": 68000,
+        "leave_balance": {"annual": 17, "sick": 6}, "phone": "+91-98765-43213"
     },
     "EMP014": {
-        "name": "Maya Lee", "department": "Legal", "position": "Legal Assistant",
-        "manager": "Anna Taylor", "hire_date": "2023-02-14", "salary": 52000,
-        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+1-555-0114"
+        "name": "Deepika Iyer", "department": "Legal", "position": "Legal Assistant",
+        "manager": "Pooja Agarwal", "hire_date": "2023-02-14", "salary": 52000,
+        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+91-98765-43214"
     },
     "EMP015": {
-        "name": "Ryan Clark", "department": "Engineering", "position": "Junior Developer",
-        "manager": "Mike Johnson", "hire_date": "2023-09-12", "salary": 62000,
-        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+1-555-0115"
+        "name": "Rohit Malhotra", "department": "Engineering", "position": "Junior Developer",
+        "manager": "Amit Gupta", "hire_date": "2023-09-12", "salary": 62000,
+        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+91-98765-43215"
     }
 }
 
@@ -140,147 +150,244 @@ def get_employee_info(username):
     return EMPLOYEE_DATA[emp_id]
 
 def find_hr_response(message, username):
-    """Find the most appropriate HR response based on keywords"""
+    """Find the most appropriate HR response based on keywords and user role"""
     message_lower = message.lower()
     emp_info = get_employee_info(username)
+    user_role = USERS[username]["role"]
     
-    # Attendance queries
-    if any(word in message_lower for word in ["attendance", "present", "absent", "check in", "check out", "working hours"]):
-        if emp_info:
-            attendance = generate_attendance_data(USERS[username]["emp_id"], 10)
-            present_days = len([a for a in attendance if a["status"] in ["Present", "Work From Home"]])
-            response = f"📊 **Your Attendance Summary (Last 10 working days):**\n\n"
-            response += f"Present: {present_days}/10 days\n\n"
-            response += "**Recent Records:**\n"
-            for record in attendance[:5]:
-                response += f"• {record['date']} ({record['day']}): {record['status']}"
-                if record['check_in'] != "--":
-                    response += f" | In: {record['check_in']} Out: {record['check_out']}"
+    # Admin users - Technical queries only
+    if user_role == "admin":
+        if any(word in message_lower for word in ["server", "system", "database", "backup", "maintenance", "technical", "logs", "performance"]):
+            return "🔧 **Technical System Information:**\n\n" \
+                   "• **System Status:** All services running normally\n" \
+                   "• **Database:** Connected and optimized\n" \
+                   "• **Last Backup:** " + datetime.now().strftime("%Y-%m-%d %H:%M") + "\n" \
+                   "• **Server Uptime:** 99.9%\n" \
+                   "• **Performance:** Optimal\n\n" \
+                   "🛠️ **Available Actions:**\n" \
+                   "• System monitoring\n• Database maintenance\n• Backup management\n• Performance optimization"
+        
+        if any(word in message_lower for word in ["users", "accounts", "reset password", "access", "permissions"]):
+            return "👥 **User Management:**\n\n" \
+                   f"• **Total Users:** {len(USERS)}\n" \
+                   f"• **Active Employees:** {len(EMPLOYEE_DATA)}\n" \
+                   "• **Recent Logins:** Available in system logs\n\n" \
+                   "🔐 **Admin Functions:**\n" \
+                   "• Reset user passwords\n• Manage user access\n• View system logs\n• Configure permissions"
+        
+        return "🔧 **Admin Technical Support**\n\nI can help you with:\n" \
+               "• 🖥️ System status and monitoring\n• 🗄️ Database management\n• 👥 User account management\n" \
+               "• 🔒 Security and permissions\n• 📊 System performance\n• 🛠️ Technical maintenance\n\n" \
+               "What technical assistance do you need?"
+    
+    # HR users - Full access to all employee data
+    elif user_role == "hr":
+        # Employee lookup queries
+        if any(word in message_lower for word in ["employee", "staff", "worker", "find", "search", "lookup"]):
+            # Extract potential employee name from message
+            employee_found = None
+            for emp_id, emp_data in EMPLOYEE_DATA.items():
+                emp_name_parts = emp_data['name'].lower().split()
+                if any(part in message_lower for part in emp_name_parts):
+                    employee_found = emp_data
+                    break
+            
+            if employee_found:
+                return f"👤 **Employee Details:**\n\n" \
+                       f"**Name:** {employee_found['name']}\n" \
+                       f"**Department:** {employee_found['department']}\n" \
+                       f"**Position:** {employee_found['position']}\n" \
+                       f"**Manager:** {employee_found['manager']}\n" \
+                       f"**Hire Date:** {employee_found['hire_date']}\n" \
+                       f"**Salary:** ₹{employee_found['salary']:,}\n" \
+                       f"**Contact:** {employee_found['phone']}\n" \
+                       f"**Leave Balance:** Annual: {employee_found['leave_balance']['annual']} | Sick: {employee_found['leave_balance']['sick']}"
+            else:
+                # Show all employees list
+                response = "👥 **All Employees:**\n\n"
+                for emp_id, emp_data in EMPLOYEE_DATA.items():
+                    response += f"• **{emp_data['name']}** - {emp_data['department']} - {emp_data['position']}\n"
+                return response
+        
+        # Department wise employee list
+        if any(word in message_lower for word in ["department", "team", "division"]):
+            dept_employees = {}
+            for emp_id, emp_data in EMPLOYEE_DATA.items():
+                dept = emp_data['department']
+                if dept not in dept_employees:
+                    dept_employees[dept] = []
+                dept_employees[dept].append(emp_data['name'])
+            
+            response = "🏢 **Department-wise Employee List:**\n\n"
+            for dept, employees in dept_employees.items():
+                response += f"**{dept}:**\n"
+                for emp in employees:
+                    response += f"  • {emp}\n"
                 response += "\n"
             return response
-        return "I can show attendance records for logged-in employees only."
+        
+        # Salary information for all employees
+        if any(word in message_lower for word in ["salary", "payroll", "compensation", "pay"]):
+            response = "💰 **Salary Information (All Employees):**\n\n"
+            total_payroll = 0
+            for emp_id, emp_data in EMPLOYEE_DATA.items():
+                response += f"• **{emp_data['name']}:** ₹{emp_data['salary']:,}/year\n"
+                total_payroll += emp_data['salary']
+            response += f"\n**Total Company Payroll:** ₹{total_payroll:,}/year"
+            return response
+        
+        # Attendance for all employees
+        if any(word in message_lower for word in ["attendance", "present", "absent"]):
+            response = "📊 **Company-wide Attendance Summary:**\n\n"
+            for emp_id, emp_data in EMPLOYEE_DATA.items():
+                attendance = generate_attendance_data(emp_id, 10)
+                present_days = len([a for a in attendance if a["status"] in ["Present", "Work From Home"]])
+                response += f"• **{emp_data['name']}:** {present_days}/10 days present\n"
+            return response
+        
+        # Leave balance for all employees
+        if any(word in message_lower for word in ["leave", "vacation", "balance"]):
+            response = "🏖️ **Leave Balance (All Employees):**\n\n"
+            for emp_id, emp_data in EMPLOYEE_DATA.items():
+                response += f"• **{emp_data['name']}:** Annual: {emp_data['leave_balance']['annual']} | Sick: {emp_data['leave_balance']['sick']}\n"
+            return response
+        
+        return "👋 **HR Management Portal**\n\nAs HR, you can access:\n" \
+               "• 👤 All employee details and profiles\n• 💰 Company payroll and salary information\n" \
+               "• 📊 Company-wide attendance reports\n• 🏖️ Leave balance for all employees\n" \
+               "• 🏢 Department-wise employee lists\n• 📋 Complete HR analytics\n\n" \
+               "Try asking: 'Show employee details', 'Department wise list', 'Salary information', 'Attendance report'"
     
-    # Profile/Personal information
-    if any(word in message_lower for word in ["profile", "my info", "personal", "details", "about me"]):
-        if emp_info:
-            return f"👤 **Your Profile:**\n\n" \
-                   f"**Name:** {emp_info['name']}\n" \
-                   f"**Employee ID:** {USERS[username]['emp_id']}\n" \
-                   f"**Department:** {emp_info['department']}\n" \
-                   f"**Position:** {emp_info['position']}\n" \
-                   f"**Manager:** {emp_info['manager']}\n" \
-                   f"**Hire Date:** {emp_info['hire_date']}\n" \
-                   f"**Contact:** {emp_info['phone']}"
-        return "Profile information available for logged-in employees only."
-    
-    # Leave balance
-    if any(word in message_lower for word in ["leave balance", "remaining leave", "vacation days", "sick days"]):
-        if emp_info:
-            return f"🏖️ **Your Leave Balance:**\n\n" \
-                   f"**Annual Leave:** {emp_info['leave_balance']['annual']} days remaining\n" \
-                   f"**Sick Leave:** {emp_info['leave_balance']['sick']} days remaining\n\n" \
-                   f"💡 *Tip: Submit leave requests at least 2 weeks in advance for approval.*"
-        return "Leave balance available for logged-in employees only."
-    
-    # Salary information
-    if any(word in message_lower for word in ["salary", "pay", "payroll", "compensation", "wages"]):
-        if emp_info and USERS[username]["role"] in ["admin", "hr"]:
-            return f"💰 **Salary Information:**\n\n" \
-                   f"**Annual Salary:** ${emp_info['salary']:,}\n" \
-                   f"**Monthly Gross:** ${emp_info['salary']//12:,}\n\n" \
-                   f"**Next Payroll:** {(datetime.now().replace(day=28) + timedelta(days=4)).strftime('%B %d, %Y')}\n" \
-                   f"💡 *For detailed pay stubs, check your email or HR portal.*"
-        elif emp_info:
+    # Regular employees - Limited to their own data
+    else:
+        # Attendance queries
+        if any(word in message_lower for word in ["attendance", "present", "absent", "check in", "check out", "working hours"]):
+            if emp_info:
+                attendance = generate_attendance_data(USERS[username]["emp_id"], 10)
+                present_days = len([a for a in attendance if a["status"] in ["Present", "Work From Home"]])
+                response = f"📊 **Your Attendance Summary (Last 10 working days):**\n\n"
+                response += f"Present: {present_days}/10 days\n\n"
+                response += "**Recent Records:**\n"
+                for record in attendance[:5]:
+                    response += f"• {record['date']} ({record['day']}): {record['status']}"
+                    if record['check_in'] != "--":
+                        response += f" | In: {record['check_in']} Out: {record['check_out']}"
+                    response += "\n"
+                return response
+            return "I can show attendance records for logged-in employees only."
+        
+        # Profile/Personal information
+        if any(word in message_lower for word in ["profile", "my info", "personal", "details", "about me"]):
+            if emp_info:
+                return f"👤 **Your Profile:**\n\n" \
+                       f"**Name:** {emp_info['name']}\n" \
+                       f"**Employee ID:** {USERS[username]['emp_id']}\n" \
+                       f"**Department:** {emp_info['department']}\n" \
+                       f"**Position:** {emp_info['position']}\n" \
+                       f"**Manager:** {emp_info['manager']}\n" \
+                       f"**Hire Date:** {emp_info['hire_date']}\n" \
+                       f"**Contact:** {emp_info['phone']}"
+            return "Profile information available for logged-in employees only."
+        
+        # Leave balance
+        if any(word in message_lower for word in ["leave balance", "remaining leave", "vacation days", "sick days"]):
+            if emp_info:
+                return f"🏖️ **Your Leave Balance:**\n\n" \
+                       f"**Annual Leave:** {emp_info['leave_balance']['annual']} days remaining\n" \
+                       f"**Sick Leave:** {emp_info['leave_balance']['sick']} days remaining\n\n" \
+                       f"💡 *Tip: Submit leave requests at least 2 weeks in advance for approval.*"
+            return "Leave balance available for logged-in employees only."
+        
+        # Salary information (restricted for regular employees)
+        if any(word in message_lower for word in ["salary", "pay", "payroll", "compensation", "wages"]):
             return "💰 **Salary Information:**\n\nFor salary details and pay stubs, please contact HR directly or check your employee portal. Salary information is confidential and available through secure channels only."
-        return "Salary information available for logged-in employees only."
-    
-    # Manager information
-    if any(word in message_lower for word in ["manager", "supervisor", "boss", "reporting"]):
-        if emp_info:
-            return f"👥 **Reporting Structure:**\n\n" \
-                   f"**Your Manager:** {emp_info['manager']}\n" \
-                   f"**Department:** {emp_info['department']}\n\n" \
-                   f"💡 *For scheduling meetings or feedback, please reach out directly to your manager.*"
-        return "Manager information available for logged-in employees only."
-    
-    # Department colleagues
-    if any(word in message_lower for word in ["colleagues", "team", "department", "coworkers"]):
-        if emp_info:
-            dept = emp_info['department']
-            colleagues = [data['name'] for emp_id, data in EMPLOYEE_DATA.items() 
-                         if data['department'] == dept and data['name'] != emp_info['name']]
-            
-            if colleagues:
-                return f"👥 **Your {dept} Department Colleagues:**\n\n" + \
-                       "\n".join([f"• {colleague}" for colleague in colleagues[:8]]) + \
-                       f"\n\n💡 *Contact HR for detailed contact information.*"
-            return f"You're currently the only member listed in the {dept} department."
-        return "Department information available for logged-in employees only."
-    
-    # Original categories with enhanced responses
-    if any(word in message_lower for word in ["leave", "vacation", "time off", "holiday", "sick leave", "pto"]):
-        return "🏖️ **Leave Policy:**\n\n" \
-               "• **Annual Leave:** 21 days per year\n" \
-               "• **Sick Leave:** 10 days per year\n" \
-               "• **Personal Days:** 3 days per year\n" \
-               "• **Maternity/Paternity:** 12 weeks\n\n" \
-               "📝 **How to Apply:**\n" \
-               "1. Submit request through HR portal\n" \
-               "2. Get manager approval\n" \
-               "3. Submit at least 2 weeks in advance\n\n" \
-               "💡 *Emergency leaves can be applied retroactively with proper documentation.*"
-    
-    if any(word in message_lower for word in ["benefits", "insurance", "health", "medical", "dental", "retirement", "401k"]):
-        return "🏥 **Employee Benefits Package:**\n\n" \
-               "**Health & Wellness:**\n" \
-               "• Medical Insurance (90% company paid)\n" \
-               "• Dental & Vision Coverage\n" \
-               "• Mental Health Support\n" \
-               "• Gym Membership Reimbursement\n\n" \
-               "**Financial:**\n" \
-               "• 401(k) with 6% company match\n" \
-               "• Life Insurance (2x annual salary)\n" \
-               "• Disability Insurance\n\n" \
-               "📞 Contact HR at hr@company.com for enrollment details."
-    
-    if any(word in message_lower for word in ["policy", "handbook", "rules", "code of conduct", "dress code", "remote work"]):
-        return "📋 **Company Policies:**\n\n" \
-               "• **Employee Handbook:** Available on company intranet\n" \
-               "• **Dress Code:** Business casual (Mon-Thu), Casual Friday\n" \
-               "• **Remote Work:** Hybrid policy - 3 days office, 2 days remote\n" \
-               "• **Working Hours:** 9 AM - 6 PM (flexible start between 8-10 AM)\n" \
-               "• **Code of Conduct:** Zero tolerance for harassment\n\n" \
-               "📖 *Full policies available at: company-intranet.com/policies*"
-    
-    if any(word in message_lower for word in ["training", "development", "course", "learning", "certification", "skill"]):
-        return "📚 **Learning & Development:**\n\n" \
-               "**Available Programs:**\n" \
-               "• Technical skill courses (Coursera, Udemy)\n" \
-               "• Leadership development workshops\n" \
-               "• Industry certifications (up to $2000/year reimbursement)\n" \
-               "• Internal mentorship program\n" \
-               "• Conference attendance budget\n\n" \
-               "💡 *Discuss your development goals with your manager during your next 1:1.*"
-    
-    if any(word in message_lower for word in ["hr contact", "hr email", "hr phone", "hr department", "human resources"]):
-        return "📞 **HR Department Contact:**\n\n" \
-               "• **Email:** hr@company.com\n" \
-               "• **Phone:** (555) 123-4567\n" \
-               "• **Location:** Building A, Floor 2, Room 201\n" \
-               "• **Hours:** 9 AM - 5 PM, Monday to Friday\n\n" \
-               "**HR Team:**\n" \
-               "• Sarah Johnson - HR Director\n" \
-               "• Emily Davis - HR Coordinator\n" \
-               "• Mike Roberts - Benefits Specialist"
-    
-    # Default response with personalization
-    name = emp_info['name'] if emp_info else username
-    return f"👋 Hi {name}! I'm here to help with HR questions.\n\n" \
-           "**I can help you with:**\n" \
-           "• 📊 Attendance records\n• 👤 Your profile information\n• 🏖️ Leave balance & policies\n" \
-           "• 💰 Salary information\n• 👥 Manager & team details\n• 🏥 Benefits information\n" \
-           "• 📋 Company policies\n• 📚 Training opportunities\n• 📞 HR contact information\n\n" \
-           "What would you like to know about?"
+        
+        # Manager information
+        if any(word in message_lower for word in ["manager", "supervisor", "boss", "reporting"]):
+            if emp_info:
+                return f"👥 **Reporting Structure:**\n\n" \
+                       f"**Your Manager:** {emp_info['manager']}\n" \
+                       f"**Department:** {emp_info['department']}\n\n" \
+                       f"💡 *For scheduling meetings or feedback, please reach out directly to your manager.*"
+            return "Manager information available for logged-in employees only."
+        
+        # Department colleagues (only their own department)
+        if any(word in message_lower for word in ["colleagues", "team", "department", "coworkers"]):
+            if emp_info:
+                dept = emp_info['department']
+                colleagues = [data['name'] for emp_id, data in EMPLOYEE_DATA.items() 
+                             if data['department'] == dept and data['name'] != emp_info['name']]
+                
+                if colleagues:
+                    return f"👥 **Your {dept} Department Colleagues:**\n\n" + \
+                           "\n".join([f"• {colleague}" for colleague in colleagues[:8]]) + \
+                           f"\n\n💡 *Contact HR for detailed contact information.*"
+                return f"You're currently the only member listed in the {dept} department."
+            return "Department information available for logged-in employees only."
+        
+        # General HR policies and information
+        if any(word in message_lower for word in ["leave", "vacation", "time off", "holiday", "sick leave", "pto"]):
+            return "🏖️ **Leave Policy:**\n\n" \
+                   "• **Annual Leave:** 21 days per year\n" \
+                   "• **Sick Leave:** 10 days per year\n" \
+                   "• **Personal Days:** 3 days per year\n" \
+                   "• **Maternity/Paternity:** 12 weeks\n\n" \
+                   "📝 **How to Apply:**\n" \
+                   "1. Submit request through HR portal\n" \
+                   "2. Get manager approval\n" \
+                   "3. Submit at least 2 weeks in advance\n\n" \
+                   "💡 *Emergency leaves can be applied retroactively with proper documentation.*"
+        
+        if any(word in message_lower for word in ["benefits", "insurance", "health", "medical", "dental", "retirement"]):
+            return "🏥 **Employee Benefits Package:**\n\n" \
+                   "**Health & Wellness:**\n" \
+                   "• Medical Insurance (90% company paid)\n" \
+                   "• Dental & Vision Coverage\n" \
+                   "• Mental Health Support\n" \
+                   "• Gym Membership Reimbursement\n\n" \
+                   "**Financial:**\n" \
+                   "• Provident Fund with company matching\n" \
+                   "• Life Insurance (2x annual salary)\n" \
+                   "• Disability Insurance\n\n" \
+                   "📞 Contact HR at hr@company.com for enrollment details."
+        
+        if any(word in message_lower for word in ["policy", "handbook", "rules", "code of conduct", "dress code", "remote work"]):
+            return "📋 **Company Policies:**\n\n" \
+                   "• **Employee Handbook:** Available on company intranet\n" \
+                   "• **Dress Code:** Business casual (Mon-Thu), Casual Friday\n" \
+                   "• **Remote Work:** Hybrid policy - 3 days office, 2 days remote\n" \
+                   "• **Working Hours:** 9 AM - 6 PM (flexible start between 8-10 AM)\n" \
+                   "• **Code of Conduct:** Zero tolerance for harassment\n\n" \
+                   "📖 *Full policies available at: company-intranet.com/policies*"
+        
+        if any(word in message_lower for word in ["training", "development", "course", "learning", "certification", "skill"]):
+            return "📚 **Learning & Development:**\n\n" \
+                   "**Available Programs:**\n" \
+                   "• Technical skill courses (Coursera, Udemy)\n" \
+                   "• Leadership development workshops\n" \
+                   "• Industry certifications (up to ₹1,50,000/year reimbursement)\n" \
+                   "• Internal mentorship program\n" \
+                   "• Conference attendance budget\n\n" \
+                   "💡 *Discuss your development goals with your manager during your next 1:1.*"
+        
+        if any(word in message_lower for word in ["hr contact", "hr email", "hr phone", "hr department", "human resources"]):
+            return "📞 **HR Department Contact:**\n\n" \
+                   "• **Email:** hr@company.com\n" \
+                   "• **Phone:** +91-80-1234-5678\n" \
+                   "• **Location:** Building A, Floor 2, Room 201\n" \
+                   "• **Hours:** 9 AM - 6 PM, Monday to Friday\n\n" \
+                   "**HR Team:**\n" \
+                   "• Meera Krishnan - HR Manager\n" \
+                   "• Kavya Reddy - HR Coordinator\n" \
+                   "• Rohit Sharma - Benefits Specialist"
+        
+        # Default response for regular employees
+        name = emp_info['name'].split()[0] if emp_info else username
+        return f"👋 Hi {name}! I can help you with:\n\n" \
+               "• 📊 Your attendance records\n• 👤 Your profile information\n• 🏖️ Your leave balance\n" \
+               "• 👥 Your manager & team details\n• 🏥 Benefits information\n" \
+               "• 📋 Company policies\n• 📚 Training opportunities\n• 📞 HR contact information\n\n" \
+               "What would you like to know about?"
 
 @app.route('/')
 def index():
@@ -455,10 +562,10 @@ def index():
                     <div class="demo-users">
                         <h3>👥 Demo User Accounts</h3>
                         <div class="user-grid">
-                            <div class="user-item"><strong>john.doe</strong> / john123</div>
-                            <div class="user-item"><strong>jane.smith</strong> / jane123</div>
-                            <div class="user-item"><strong>mike.johnson</strong> / mike123</div>
-                            <div class="user-item"><strong>sarah.wilson</strong> / sarah123</div>
+                            <div class="user-item"><strong>rajesh.kumar</strong> / rajesh123</div>
+                            <div class="user-item"><strong>priya.sharma</strong> / priya123</div>
+                            <div class="user-item"><strong>amit.gupta</strong> / amit123</div>
+                            <div class="user-item"><strong>sneha.patel</strong> / sneha123</div>
                             <div class="user-item"><strong>admin</strong> / password123</div>
                             <div class="user-item"><strong>hr</strong> / hrpass</div>
                         </div>
@@ -593,7 +700,7 @@ def index():
 
 @app.route('/login', methods=['POST'])
 def login():
-    """Handle user login with enhanced validation"""
+    """Handle user login with simple welcome messages"""
     try:
         data = request.get_json()
         if not data:
@@ -607,20 +714,34 @@ def login():
         
         if username in USERS and USERS[username]["password"] == password:
             emp_info = get_employee_info(username)
-            welcome_msg = f"Welcome back, {emp_info['name'] if emp_info else username}! 👋\n\n"
-            welcome_msg += "I'm your HR assistant. I can help you with:\n"
-            welcome_msg += "• 📊 Check your attendance records\n"
-            welcome_msg += "• 🏖️ View leave balance\n"
-            welcome_msg += "• 👤 Access your profile information\n"
-            welcome_msg += "• 💰 Salary and benefits information\n"
-            welcome_msg += "• 📋 Company policies and procedures\n\n"
-            welcome_msg += "What would you like to know about today?"
+            user_role = USERS[username]["role"]
+            
+            # Simple welcome messages based on role
+            if user_role == "admin":
+                if emp_info:
+                    first_name = emp_info['name'].split()[0]
+                    welcome_msg = f"Hello {first_name}, Welcome back !!"
+                else:
+                    welcome_msg = "Hello Admin, Welcome back !!"
+            elif user_role == "hr":
+                if emp_info:
+                    first_name = emp_info['name'].split()[0]
+                    welcome_msg = f"Hello {first_name}, Welcome back !!"
+                else:
+                    welcome_msg = "Hello HR, Welcome back !!"
+            else:
+                # For regular employees
+                if emp_info:
+                    first_name = emp_info['name'].split()[0]
+                    welcome_msg = f"Hello {first_name}, Welcome back !!"
+                else:
+                    welcome_msg = f"Hello {username}, Welcome back !!"
             
             return jsonify({
                 "success": True,
                 "message": welcome_msg,
                 "username": username,
-                "role": USERS[username]["role"]
+                "role": user_role
             })
         else:
             return jsonify({
@@ -768,13 +889,13 @@ if __name__ == '__main__':
     print("📋 Sample login credentials:")
     print("-" * 30)
     
-    sample_users = ["john.doe", "jane.smith", "mike.johnson", "admin", "hr"]
+    sample_users = ["rajesh.kumar", "priya.sharma", "amit.gupta", "admin", "hr"]
     for user in sample_users:
         if user in USERS:
             emp_info = get_employee_info(user)
             name = emp_info["name"] if emp_info else "N/A"
             role = USERS[user]["role"]
-            print(f"   👤 {user:<12} | {USERS[user]['password']:<10} | {role:<8} | {name}")
+            print(f"   👤 {user:<15} | {USERS[user]['password']:<10} | {role:<8} | {name}")
     
     print("-" * 30)
     print(f"👥 Total employees loaded: {len(EMPLOYEE_DATA)}")
