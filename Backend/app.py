@@ -1,10 +1,10 @@
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import json
 from datetime import datetime, timedelta
 import random
 
-app = Flask(__name__)
+app = Flask(__name__,template_folder="../Front end")
 CORS(app)
 
 # Enhanced user credentials with Indian employee data
@@ -391,312 +391,8 @@ def find_hr_response(message, username):
 
 @app.route('/')
 def index():
-    """Serve the main HTML page with enhanced UI"""
-    html_content = """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>TechCorp HR Assistant</title>
-        <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                min-height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
-            }
-            .container { 
-                background: rgba(255, 255, 255, 0.95); 
-                border-radius: 20px; 
-                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                max-width: 800px;
-                width: 100%;
-                overflow: hidden;
-            }
-            .header {
-                background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-                color: white;
-                padding: 30px;
-                text-align: center;
-            }
-            .header h1 { font-size: 2.5em; margin-bottom: 10px; }
-            .header p { opacity: 0.9; font-size: 1.1em; }
-            .content { padding: 40px; }
-            
-            #login-screen input { 
-                width: 100%; 
-                padding: 15px 20px; 
-                margin: 10px 0; 
-                border: 2px solid #e0e0e0; 
-                border-radius: 10px; 
-                font-size: 16px;
-                transition: border-color 0.3s;
-            }
-            #login-screen input:focus {
-                border-color: #4facfe;
-                outline: none;
-            }
-            button { 
-                background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-                color: white; 
-                padding: 15px 30px; 
-                border: none; 
-                border-radius: 10px; 
-                cursor: pointer; 
-                font-size: 16px;
-                font-weight: 600;
-                transition: transform 0.3s;
-                width: 100%;
-                margin-top: 10px;
-            }
-            button:hover { transform: translateY(-2px); }
-            
-            .demo-users {
-                background: #f8f9ff;
-                border-radius: 10px;
-                padding: 20px;
-                margin-top: 20px;
-            }
-            .demo-users h3 { color: #333; margin-bottom: 15px; }
-            .user-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 10px;
-            }
-            .user-item {
-                background: white;
-                padding: 10px;
-                border-radius: 8px;
-                font-size: 14px;
-                border: 1px solid #e0e0e0;
-            }
-            
-            #messages { 
-                height: 500px; 
-                overflow-y: auto; 
-                border: 2px solid #e0e0e0; 
-                border-radius: 15px;
-                padding: 20px; 
-                margin-bottom: 20px; 
-                background: #fafafa;
-            }
-            .message { 
-                margin: 15px 0; 
-                padding: 15px 20px; 
-                border-radius: 15px; 
-                max-width: 80%;
-                word-wrap: break-word;
-            }
-            .message.user { 
-                background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-                color: white;
-                margin-left: auto;
-                text-align: right; 
-            }
-            .message.bot { 
-                background: white;
-                border: 2px solid #e0e0e0;
-                color: #333;
-            }
-            .message-header { font-size: 12px; margin-bottom: 8px; font-weight: 600; }
-            .timestamp { opacity: 0.7; }
-            .message-content { line-height: 1.6; white-space: pre-line; }
-            
-            .input-area {
-                display: flex;
-                gap: 15px;
-                align-items: flex-end;
-            }
-            #message-input {
-                flex: 1;
-                padding: 15px 20px;
-                border: 2px solid #e0e0e0;
-                border-radius: 15px;
-                font-size: 16px;
-                resize: vertical;
-                min-height: 50px;
-                max-height: 120px;
-            }
-            #message-input:focus {
-                border-color: #4facfe;
-                outline: none;
-            }
-            #send-btn {
-                width: auto;
-                margin: 0;
-                padding: 15px 25px;
-                border-radius: 15px;
-            }
-            
-            .status-bar {
-                background: #f0f0f0;
-                padding: 10px 20px;
-                font-size: 14px;
-                color: #666;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-            .user-info { font-weight: 600; color: #4facfe; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>🤖 TechCorp HR Assistant</h1>
-                <p>Your personal HR support, available 24/7</p>
-            </div>
-            
-            <div class="content">
-                <div id="login-screen">
-                    <h2 style="margin-bottom: 20px; color: #333;">Welcome Back!</h2>
-                    <input type="text" id="username" placeholder="Enter your username">
-                    <input type="password" id="password" placeholder="Enter your password">
-                    <button id="confirm-btn">Sign In</button>
-                    
-                    <div class="demo-users">
-                        <h3>👥 Demo User Accounts</h3>
-                        <div class="user-grid">
-                            <div class="user-item"><strong>rajesh.kumar</strong> / rajesh123</div>
-                            <div class="user-item"><strong>priya.sharma</strong> / priya123</div>
-                            <div class="user-item"><strong>amit.gupta</strong> / amit123</div>
-                            <div class="user-item"><strong>sneha.patel</strong> / sneha123</div>
-                            <div class="user-item"><strong>admin</strong> / password123</div>
-                            <div class="user-item"><strong>hr</strong> / hrpass</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="chat-screen" style="display:none;">
-                    <div class="status-bar">
-                        <span>🟢 Connected to HR Assistant</span>
-                        <span class="user-info" id="current-user"></span>
-                    </div>
-                    <div id="messages"></div>
-                    <div class="input-area">
-                        <textarea id="message-input" placeholder="Ask me about attendance, leave balance, benefits, policies, or anything HR related..."></textarea>
-                        <button id="send-btn">Send 📤</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <script>
-            let currentUsername = '';
-            const loginScreen = document.getElementById('login-screen');
-            const chatScreen = document.getElementById('chat-screen');
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
-            const confirmBtn = document.getElementById('confirm-btn');
-            const messagesDiv = document.getElementById('messages');
-            const messageInput = document.getElementById('message-input');
-            const sendBtn = document.getElementById('send-btn');
-            const currentUserSpan = document.getElementById('current-user');
-            
-            confirmBtn.addEventListener('click', handleLogin);
-            sendBtn.addEventListener('click', sendMessage);
-            messageInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
-            
-            // Demo user click handlers
-            document.querySelectorAll('.user-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    const text = this.textContent;
-                    const [username, password] = text.split(' / ');
-                    usernameInput.value = username;
-                    passwordInput.value = password;
-                });
-            });
-            
-            async function handleLogin() {
-                const username = usernameInput.value.trim();
-                const password = passwordInput.value.trim();
-                
-                if (!username || !password) {
-                    alert('Please enter both username and password');
-                    return;
-                }
-                
-                try {
-                    const response = await fetch('/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, password })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        currentUsername = data.username;
-                        currentUserSpan.textContent = `Logged in as: ${currentUsername}`;
-                        loginScreen.style.display = 'none';
-                        chatScreen.style.display = 'block';
-                        addMessage('HR Bot', data.message, 'bot');
-                        usernameInput.value = '';
-                        passwordInput.value = '';
-                    } else {
-                        alert(data.message);
-                    }
-                } catch (error) {
-                    alert('Login failed. Please try again.');
-                }
-            }
-            
-            async function sendMessage() {
-                const message = messageInput.value.trim();
-                if (!message) return;
-                
-                addMessage(currentUsername, message, 'user');
-                messageInput.value = '';
-                
-                try {
-                    const response = await fetch('/chat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message, username: currentUsername })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        addMessage('HR Bot', data.bot_response, 'bot');
-                    } else {
-                        addMessage('HR Bot', 'Sorry, I encountered an error.', 'bot');
-                    }
-                } catch (error) {
-                    addMessage('HR Bot', 'Connection error. Please try again.', 'bot');
-                }
-            }
-            
-            function addMessage(sender, message, type) {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${type}`;
-                const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                messageDiv.innerHTML = `
-                    <div class="message-header">
-                        <strong>${sender}</strong>
-                        <span class="timestamp">${time}</span>
-                    </div>
-                    <div class="message-content">${message}</div>
-                `;
-                messagesDiv.appendChild(messageDiv);
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                return messageDiv;
-            }
-        </script>
-    </body>
-    </html>
-    """
-    return render_template_string(html_content)
+    """Serve the main HTML page"""
+    return render_template('index.html')
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -864,6 +560,21 @@ def health():
         "employees_loaded": len(EMPLOYEE_DATA),
         "users_configured": len(USERS)
     })
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    """Clear user session (dummy logout)"""
+    try:
+        data = request.get_json()
+        username = data.get("username", "")
+        # You can also clear session/cookies here if using Flask-Login
+        return jsonify({
+            "success": True,
+            "message": f"User {username} has been logged out successfully."
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": "Logout failed."}), 500
+
 
 @app.route('/debug/users', methods=['GET'])
 def debug_users():
