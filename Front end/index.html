@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HR Bot</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Login Screen -->
+  <div id="login-screen">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Username">
+    <br><br>
+    <input type="password" id="password" placeholder="Password">
+    <br><br>
+    <button id="confirm-btn">Confirm</button>
+  </div>
+
+  <!-- Chat Screen -->
+  <div id="chat-screen" style="display:none; flex-direction:column; height:100vh;">
+    <div id="messages" style="flex:1; overflow-y:auto; border:1px solid #ccc; padding:10px;"></div>
+    <div style="display:flex; border-top:1px solid #ccc; padding:10px;">
+      <input type="text" id="message-input" placeholder="Type your message..." style="flex:1;">
+      <button id="send-btn">Send</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
+
