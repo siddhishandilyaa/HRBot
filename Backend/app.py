@@ -64,8 +64,150 @@ def find_hr_response(message):
 @app.route('/')
 def index():
     """Serve the main HTML page"""
-    with open('index.html', 'r') as file:
-        html_content = file.read()
+    try:
+        # Try to read from frontend folder first
+        with open('../frontend/index.html', 'r') as file:
+            html_content = file.read()
+    except FileNotFoundError:
+        try:
+            # Fallback to same directory
+            with open('index.html', 'r') as file:
+                html_content = file.read()
+        except FileNotFoundError:
+            # If no HTML file found, return a basic template
+            html_content = """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>HR Bot</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+                    #login-screen, #chat-screen { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                    input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+                    button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+                    button:hover { background: #0056b3; }
+                    #messages { height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
+                    .message { margin: 10px 0; padding: 10px; border-radius: 4px; }
+                    .message.user { background: #e3f2fd; text-align: right; }
+                    .message.bot { background: #f5f5f5; }
+                    .message-header { font-size: 12px; margin-bottom: 5px; }
+                    .timestamp { color: #666; }
+                </style>
+            </head>
+            <body>
+                <div id="login-screen">
+                    <h2>HR Bot Login</h2>
+                    <input type="text" id="username" placeholder="Username">
+                    <input type="password" id="password" placeholder="Password">
+                    <button id="confirm-btn">Login</button>
+                </div>
+                
+                <div id="chat-screen" style="display:none;">
+                    <h2>HR Assistant</h2>
+                    <div id="messages"></div>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="message-input" placeholder="Type your HR question..." style="flex:1;">
+                        <button id="send-btn">Send</button>
+                    </div>
+                </div>
+                
+                <script>
+                    let currentUsername = '';
+                    const loginScreen = document.getElementById('login-screen');
+                    const chatScreen = document.getElementById('chat-screen');
+                    const usernameInput = document.getElementById('username');
+                    const passwordInput = document.getElementById('password');
+                    const confirmBtn = document.getElementById('confirm-btn');
+                    const messagesDiv = document.getElementById('messages');
+                    const messageInput = document.getElementById('message-input');
+                    const sendBtn = document.getElementById('send-btn');
+                    
+                    confirmBtn.addEventListener('click', handleLogin);
+                    sendBtn.addEventListener('click', sendMessage);
+                    messageInput.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') sendMessage();
+                    });
+                    
+                    async function handleLogin() {
+                        const username = usernameInput.value.trim();
+                        const password = passwordInput.value.trim();
+                        
+                        if (!username || !password) {
+                            alert('Please enter both username and password');
+                            return;
+                        }
+                        
+                        try {
+                            const response = await fetch('/login', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ username, password })
+                            });
+                            
+                            const data = await response.json();
+                            
+                            if (data.success) {
+                                currentUsername = data.username;
+                                loginScreen.style.display = 'none';
+                                chatScreen.style.display = 'block';
+                                addMessage('HR Bot', data.message, 'bot');
+                                usernameInput.value = '';
+                                passwordInput.value = '';
+                            } else {
+                                alert(data.message);
+                            }
+                        } catch (error) {
+                            alert('Login failed. Please try again.');
+                        }
+                    }
+                    
+                    async function sendMessage() {
+                        const message = messageInput.value.trim();
+                        if (!message) return;
+                        
+                        addMessage(currentUsername, message, 'user');
+                        messageInput.value = '';
+                        
+                        try {
+                            const response = await fetch('/chat', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ message, username: currentUsername })
+                            });
+                            
+                            const data = await response.json();
+                            
+                            if (data.success) {
+                                addMessage('HR Bot', data.bot_response, 'bot');
+                            } else {
+                                addMessage('HR Bot', 'Sorry, I encountered an error.', 'bot');
+                            }
+                        } catch (error) {
+                            addMessage('HR Bot', 'Connection error. Please try again.', 'bot');
+                        }
+                    }
+                    
+                    function addMessage(sender, message, type) {
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = `message ${type}`;
+                        const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        messageDiv.innerHTML = `
+                            <div class="message-header">
+                                <strong>${sender}</strong>
+                                <span class="timestamp">${time}</span>
+                            </div>
+                            <div class="message-content">${message}</div>
+                        `;
+                        messagesDiv.appendChild(messageDiv);
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                        return messageDiv;
+                    }
+                </script>
+            </body>
+            </html>
+            """
     return render_template_string(html_content)
 
 @app.route('/login', methods=['POST'])
