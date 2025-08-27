@@ -66,7 +66,7 @@ def index():
     """Serve the main HTML page"""
     try:
         # Try to read from frontend folder first
-        with open('../frontend/index.html', 'r') as file:
+        with open('../Frontend/index.html', 'r') as file:
             html_content = file.read()
     except FileNotFoundError:
         try:
