@@ -1,629 +1,567 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, session
 from flask_cors import CORS
+from datetime import datetime, date
+import uuid
 import json
-from datetime import datetime, timedelta
-import random
+from flask import render_template
 
 app = Flask(__name__,template_folder="../Front end",static_folder="../Front end/static")
+app.secret_key = 'your-secret-key-change-in-production'
 CORS(app)
 
-# Enhanced user credentials with Indian employee data
-USERS = {
-    "admin": {"password": "password123", "role": "admin", "emp_id": "EMP001"},
-    "hr": {"password": "hrpass", "role": "hr", "emp_id": "EMP002"},
-    "rajesh.kumar": {"password": "rajesh123", "role": "employee", "emp_id": "EMP003"},
-    "priya.sharma": {"password": "priya123", "role": "employee", "emp_id": "EMP004"},
-    "amit.gupta": {"password": "amit123", "role": "manager", "emp_id": "EMP005"},
-    "sneha.patel": {"password": "sneha123", "role": "employee", "emp_id": "EMP006"},
-    "vikram.singh": {"password": "vikram123", "role": "employee", "emp_id": "EMP007"},
-    "kavya.reddy": {"password": "kavya123", "role": "employee", "emp_id": "EMP008"},
-    "arjun.nair": {"password": "arjun123", "role": "employee", "emp_id": "EMP009"},
-    "ananya.joshi": {"password": "ananya123", "role": "employee", "emp_id": "EMP010"},
-    "rahul.verma": {"password": "rahul123", "role": "employee", "emp_id": "EMP011"},
-    "pooja.agarwal": {"password": "pooja123", "role": "manager", "emp_id": "EMP012"},
-    "karthik.menon": {"password": "karthik123", "role": "employee", "emp_id": "EMP013"},
-    "deepika.iyer": {"password": "deepika123", "role": "employee", "emp_id": "EMP014"},
-    "rohit.malhotra": {"password": "rohit123", "role": "employee", "emp_id": "EMP015"}
+# In-memory storage (replace with database in production)
+conversations = {}
+tickets = []
+employees = {}
+leave_requests = []
+dependents = []
+holidays = [
+    {'date': '2025-01-01', 'holiday': 'New Year\'s Day'},
+    {'date': '2025-01-26', 'holiday': 'Republic Day'},
+    {'date': '2025-03-14', 'holiday': 'Holi'},
+    {'date': '2025-08-15', 'holiday': 'Independence Day'},
+    {'date': '2025-10-02', 'holiday': 'Gandhi Jayanti'},
+    {'date': '2025-12-25', 'holiday': 'Christmas Day'}
+]
+benefit_plans = [
+    {'plan': 'Health Insurance', 'coverage': 'Medical, Dental, Vision', 'premium': '$150/month'},
+    {'plan': 'Retirement Plan', 'coverage': '401(k) with 5% match', 'premium': 'Company matched'},
+    {'plan': 'Life Insurance', 'coverage': '2x annual salary', 'premium': '$25/month'},
+    {'plan': 'Disability Insurance', 'coverage': 'Short & Long term', 'premium': '$40/month'}
+]
+
+# HR Bot responses and actions
+HR_RESPONSES = {
+    'greeting': "Hi Siddhi, how may I help you today?",
+    'thanks': "Thank you for your valuable feedback\n\nSee you! Bye :)",
+    'help': "Please choose an issue you need assistance with or just type your issue."
 }
 
-# Mock employee database with Indian names
-EMPLOYEE_DATA = {
-    "EMP001": {
-        "name": "Suresh Raina", "department": "Administration", "position": "Administrator",
-        "manager": "CEO", "hire_date": "2020-01-01", "salary": 120000,
-        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+91-98765-43201"
-    },
-    "EMP002": {
-        "name": "Meera Krishnan", "department": "Human Resources", "position": "HR Manager",
-        "manager": "CEO", "hire_date": "2020-02-01", "salary": 100000,
-        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+91-98765-43202"
-    },
-    "EMP003": {
-        "name": "Rajesh Kumar", "department": "Engineering", "position": "Software Developer",
-        "manager": "Amit Gupta", "hire_date": "2022-03-15", "salary": 75000,
-        "leave_balance": {"annual": 18, "sick": 8}, "phone": "+91-98765-43203"
-    },
-    "EMP004": {
-        "name": "Priya Sharma", "department": "Marketing", "position": "Marketing Specialist",
-        "manager": "Pooja Agarwal", "hire_date": "2021-07-20", "salary": 65000,
-        "leave_balance": {"annual": 15, "sick": 6}, "phone": "+91-98765-43204"
-    },
-    "EMP005": {
-        "name": "Amit Gupta", "department": "Engineering", "position": "Engineering Manager",
-        "manager": "Suresh Raina", "hire_date": "2020-01-10", "salary": 95000,
-        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+91-98765-43205"
-    },
-    "EMP006": {
-        "name": "Sneha Patel", "department": "Finance", "position": "Financial Analyst",
-        "manager": "Pooja Agarwal", "hire_date": "2023-01-08", "salary": 70000,
-        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+91-98765-43206"
-    },
-    "EMP007": {
-        "name": "Vikram Singh", "department": "Engineering", "position": "Senior Developer",
-        "manager": "Amit Gupta", "hire_date": "2019-11-12", "salary": 85000,
-        "leave_balance": {"annual": 12, "sick": 4}, "phone": "+91-98765-43207"
-    },
-    "EMP008": {
-        "name": "Kavya Reddy", "department": "HR", "position": "HR Coordinator",
-        "manager": "Meera Krishnan", "hire_date": "2022-09-05", "salary": 55000,
-        "leave_balance": {"annual": 16, "sick": 7}, "phone": "+91-98765-43208"
-    },
-    "EMP009": {
-        "name": "Arjun Nair", "department": "Sales", "position": "Sales Representative",
-        "manager": "Pooja Agarwal", "hire_date": "2023-06-01", "salary": 60000,
-        "leave_balance": {"annual": 20, "sick": 9}, "phone": "+91-98765-43209"
-    },
-    "EMP010": {
-        "name": "Ananya Joshi", "department": "Design", "position": "UX Designer",
-        "manager": "Amit Gupta", "hire_date": "2021-12-03", "salary": 72000,
-        "leave_balance": {"annual": 14, "sick": 5}, "phone": "+91-98765-43210"
-    },
-    "EMP011": {
-        "name": "Rahul Verma", "department": "Operations", "position": "Operations Specialist",
-        "manager": "Pooja Agarwal", "hire_date": "2020-08-17", "salary": 58000,
-        "leave_balance": {"annual": 19, "sick": 8}, "phone": "+91-98765-43211"
-    },
-    "EMP012": {
-        "name": "Pooja Agarwal", "department": "Management", "position": "Department Manager",
-        "manager": "Suresh Raina", "hire_date": "2018-04-22", "salary": 90000,
-        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+91-98765-43212"
-    },
-    "EMP013": {
-        "name": "Karthik Menon", "department": "IT", "position": "System Administrator",
-        "manager": "Amit Gupta", "hire_date": "2022-11-30", "salary": 68000,
-        "leave_balance": {"annual": 17, "sick": 6}, "phone": "+91-98765-43213"
-    },
-    "EMP014": {
-        "name": "Deepika Iyer", "department": "Legal", "position": "Legal Assistant",
-        "manager": "Pooja Agarwal", "hire_date": "2023-02-14", "salary": 52000,
-        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+91-98765-43214"
-    },
-    "EMP015": {
-        "name": "Rohit Malhotra", "department": "Engineering", "position": "Junior Developer",
-        "manager": "Amit Gupta", "hire_date": "2023-09-12", "salary": 62000,
-        "leave_balance": {"annual": 21, "sick": 10}, "phone": "+91-98765-43215"
-    }
-}
+HR_ACTIONS = [
+    {'id': 'apply_leave', 'label': 'Apply leave'},
+    {'id': 'get_benefit_plans', 'label': 'Get benefit plans'},
+    {'id': 'get_salary_details', 'label': 'Get salary details'},
+    {'id': 'holiday_list', 'label': 'Holiday list'},
+    {'id': 'create_ticket', 'label': 'Create ticket'},
+    {'id': 'get_ticket_details', 'label': 'Get ticket details'},
+    {'id': 'add_employee_dependent', 'label': 'Add employee dependent'}
+]
 
-def generate_attendance_data(emp_id, days=30):
-    """Generate mock attendance data for the last N days"""
-    attendance = []
-    today = datetime.now()
-    
-    for i in range(days):
-        date = today - timedelta(days=i)
-        # Skip weekends
-        if date.weekday() >= 5:
-            continue
-            
-        # 90% chance of being present
-        status = "Present" if random.random() < 0.9 else random.choice(["Absent", "Half Day", "Work From Home"])
-        
-        if status == "Present":
-            check_in = f"{random.randint(8, 10):02d}:{random.randint(0, 59):02d}"
-            check_out = f"{random.randint(17, 19):02d}:{random.randint(0, 59):02d}"
-        elif status == "Work From Home":
-            check_in = f"{random.randint(9, 10):02d}:{random.randint(0, 59):02d}"
-            check_out = f"{random.randint(17, 18):02d}:{random.randint(0, 59):02d}"
-        else:
-            check_in = check_out = "--"
-        
-        attendance.append({
-            "date": date.strftime("%Y-%m-%d"),
-            "day": date.strftime("%A"),
-            "status": status,
-            "check_in": check_in,
-            "check_out": check_out
-        })
-    
-    return sorted(attendance, key=lambda x: x['date'], reverse=True)
+def generate_id():
+    """Generate a unique ID"""
+    return str(uuid.uuid4())
 
-def get_employee_info(username):
-    """Get employee information by username"""
-    if username not in USERS:
-        return None
-    
-    emp_id = USERS[username]["emp_id"]
-    if emp_id not in EMPLOYEE_DATA:
-        return None
-    
-    return EMPLOYEE_DATA[emp_id]
-
-def find_hr_response(message, username):
-    """Find the most appropriate HR response based on keywords and user role"""
-    message_lower = message.lower()
-    emp_info = get_employee_info(username)
-    user_role = USERS[username]["role"]
-    
-    # Admin users - Technical queries only
-    if user_role == "admin":
-        if any(word in message_lower for word in ["server", "system", "database", "backup", "maintenance", "technical", "logs", "performance"]):
-            return "🔧 **Technical System Information:**\n\n" \
-                   "• **System Status:** All services running normally\n" \
-                   "• **Database:** Connected and optimized\n" \
-                   "• **Last Backup:** " + datetime.now().strftime("%Y-%m-%d %H:%M") + "\n" \
-                   "• **Server Uptime:** 99.9%\n" \
-                   "• **Performance:** Optimal\n\n" \
-                   "🛠️ **Available Actions:**\n" \
-                   "• System monitoring\n• Database maintenance\n• Backup management\n• Performance optimization"
-        
-        if any(word in message_lower for word in ["users", "accounts", "reset password", "access", "permissions"]):
-            return "👥 **User Management:**\n\n" \
-                   f"• **Total Users:** {len(USERS)}\n" \
-                   f"• **Active Employees:** {len(EMPLOYEE_DATA)}\n" \
-                   "• **Recent Logins:** Available in system logs\n\n" \
-                   "🔐 **Admin Functions:**\n" \
-                   "• Reset user passwords\n• Manage user access\n• View system logs\n• Configure permissions"
-        
-        return "🔧 **Admin Technical Support**\n\nI can help you with:\n" \
-               "• 🖥️ System status and monitoring\n• 🗄️ Database management\n• 👥 User account management\n" \
-               "• 🔒 Security and permissions\n• 📊 System performance\n• 🛠️ Technical maintenance\n\n" \
-               "What technical assistance do you need?"
-    
-    # HR users - Full access to all employee data
-    elif user_role == "hr":
-        # Employee lookup queries
-        if any(word in message_lower for word in ["employee", "staff", "worker", "find", "search", "lookup"]):
-            # Extract potential employee name from message
-            employee_found = None
-            for emp_id, emp_data in EMPLOYEE_DATA.items():
-                emp_name_parts = emp_data['name'].lower().split()
-                if any(part in message_lower for part in emp_name_parts):
-                    employee_found = emp_data
-                    break
-            
-            if employee_found:
-                return f"👤 **Employee Details:**\n\n" \
-                       f"**Name:** {employee_found['name']}\n" \
-                       f"**Department:** {employee_found['department']}\n" \
-                       f"**Position:** {employee_found['position']}\n" \
-                       f"**Manager:** {employee_found['manager']}\n" \
-                       f"**Hire Date:** {employee_found['hire_date']}\n" \
-                       f"**Salary:** ₹{employee_found['salary']:,}\n" \
-                       f"**Contact:** {employee_found['phone']}\n" \
-                       f"**Leave Balance:** Annual: {employee_found['leave_balance']['annual']} | Sick: {employee_found['leave_balance']['sick']}"
-            else:
-                # Show all employees list
-                response = "👥 **All Employees:**\n\n"
-                for emp_id, emp_data in EMPLOYEE_DATA.items():
-                    response += f"• **{emp_data['name']}** - {emp_data['department']} - {emp_data['position']}\n"
-                return response
-        
-        # Department wise employee list
-        if any(word in message_lower for word in ["department", "team", "division"]):
-            dept_employees = {}
-            for emp_id, emp_data in EMPLOYEE_DATA.items():
-                dept = emp_data['department']
-                if dept not in dept_employees:
-                    dept_employees[dept] = []
-                dept_employees[dept].append(emp_data['name'])
-            
-            response = "🏢 **Department-wise Employee List:**\n\n"
-            for dept, employees in dept_employees.items():
-                response += f"**{dept}:**\n"
-                for emp in employees:
-                    response += f"  • {emp}\n"
-                response += "\n"
-            return response
-        
-        # Salary information for all employees
-        if any(word in message_lower for word in ["salary", "payroll", "compensation", "pay"]):
-            response = "💰 **Salary Information (All Employees):**\n\n"
-            total_payroll = 0
-            for emp_id, emp_data in EMPLOYEE_DATA.items():
-                response += f"• **{emp_data['name']}:** ₹{emp_data['salary']:,}/year\n"
-                total_payroll += emp_data['salary']
-            response += f"\n**Total Company Payroll:** ₹{total_payroll:,}/year"
-            return response
-        
-        # Attendance for all employees
-        if any(word in message_lower for word in ["attendance", "present", "absent"]):
-            response = "📊 **Company-wide Attendance Summary:**\n\n"
-            for emp_id, emp_data in EMPLOYEE_DATA.items():
-                attendance = generate_attendance_data(emp_id, 10)
-                present_days = len([a for a in attendance if a["status"] in ["Present", "Work From Home"]])
-                response += f"• **{emp_data['name']}:** {present_days}/10 days present\n"
-            return response
-        
-        # Leave balance for all employees
-        if any(word in message_lower for word in ["leave", "vacation", "balance"]):
-            response = "🏖️ **Leave Balance (All Employees):**\n\n"
-            for emp_id, emp_data in EMPLOYEE_DATA.items():
-                response += f"• **{emp_data['name']}:** Annual: {emp_data['leave_balance']['annual']} | Sick: {emp_data['leave_balance']['sick']}\n"
-            return response
-        
-        return "👋 **HR Management Portal**\n\nAs HR, you can access:\n" \
-               "• 👤 All employee details and profiles\n• 💰 Company payroll and salary information\n" \
-               "• 📊 Company-wide attendance reports\n• 🏖️ Leave balance for all employees\n" \
-               "• 🏢 Department-wise employee lists\n• 📋 Complete HR analytics\n\n" \
-               "Try asking: 'Show employee details', 'Department wise list', 'Salary information', 'Attendance report'"
-    
-    # Regular employees - Limited to their own data
-    else:
-        # Attendance queries
-        if any(word in message_lower for word in ["attendance", "present", "absent", "check in", "check out", "working hours"]):
-            if emp_info:
-                attendance = generate_attendance_data(USERS[username]["emp_id"], 10)
-                present_days = len([a for a in attendance if a["status"] in ["Present", "Work From Home"]])
-                response = f"📊 **Your Attendance Summary (Last 10 working days):**\n\n"
-                response += f"Present: {present_days}/10 days\n\n"
-                response += "**Recent Records:**\n"
-                for record in attendance[:5]:
-                    response += f"• {record['date']} ({record['day']}): {record['status']}"
-                    if record['check_in'] != "--":
-                        response += f" | In: {record['check_in']} Out: {record['check_out']}"
-                    response += "\n"
-                return response
-            return "I can show attendance records for logged-in employees only."
-        
-        # Profile/Personal information
-        if any(word in message_lower for word in ["profile", "my info", "personal", "details", "about me"]):
-            if emp_info:
-                return f"👤 **Your Profile:**\n\n" \
-                       f"**Name:** {emp_info['name']}\n" \
-                       f"**Employee ID:** {USERS[username]['emp_id']}\n" \
-                       f"**Department:** {emp_info['department']}\n" \
-                       f"**Position:** {emp_info['position']}\n" \
-                       f"**Manager:** {emp_info['manager']}\n" \
-                       f"**Hire Date:** {emp_info['hire_date']}\n" \
-                       f"**Contact:** {emp_info['phone']}"
-            return "Profile information available for logged-in employees only."
-        
-        # Leave balance
-        if any(word in message_lower for word in ["leave balance", "remaining leave", "vacation days", "sick days"]):
-            if emp_info:
-                return f"🏖️ **Your Leave Balance:**\n\n" \
-                       f"**Annual Leave:** {emp_info['leave_balance']['annual']} days remaining\n" \
-                       f"**Sick Leave:** {emp_info['leave_balance']['sick']} days remaining\n\n" \
-                       f"💡 *Tip: Submit leave requests at least 2 weeks in advance for approval.*"
-            return "Leave balance available for logged-in employees only."
-        
-        # Salary information (restricted for regular employees)
-        if any(word in message_lower for word in ["salary", "pay", "payroll", "compensation", "wages"]):
-            return "💰 **Salary Information:**\n\nFor salary details and pay stubs, please contact HR directly or check your employee portal. Salary information is confidential and available through secure channels only."
-        
-        # Manager information
-        if any(word in message_lower for word in ["manager", "supervisor", "boss", "reporting"]):
-            if emp_info:
-                return f"👥 **Reporting Structure:**\n\n" \
-                       f"**Your Manager:** {emp_info['manager']}\n" \
-                       f"**Department:** {emp_info['department']}\n\n" \
-                       f"💡 *For scheduling meetings or feedback, please reach out directly to your manager.*"
-            return "Manager information available for logged-in employees only."
-        
-        # Department colleagues (only their own department)
-        if any(word in message_lower for word in ["colleagues", "team", "department", "coworkers"]):
-            if emp_info:
-                dept = emp_info['department']
-                colleagues = [data['name'] for emp_id, data in EMPLOYEE_DATA.items() 
-                             if data['department'] == dept and data['name'] != emp_info['name']]
-                
-                if colleagues:
-                    return f"👥 **Your {dept} Department Colleagues:**\n\n" + \
-                           "\n".join([f"• {colleague}" for colleague in colleagues[:8]]) + \
-                           f"\n\n💡 *Contact HR for detailed contact information.*"
-                return f"You're currently the only member listed in the {dept} department."
-            return "Department information available for logged-in employees only."
-        
-        # General HR policies and information
-        if any(word in message_lower for word in ["leave", "vacation", "time off", "holiday", "sick leave", "pto"]):
-            return "🏖️ **Leave Policy:**\n\n" \
-                   "• **Annual Leave:** 21 days per year\n" \
-                   "• **Sick Leave:** 10 days per year\n" \
-                   "• **Personal Days:** 3 days per year\n" \
-                   "• **Maternity/Paternity:** 12 weeks\n\n" \
-                   "📝 **How to Apply:**\n" \
-                   "1. Submit request through HR portal\n" \
-                   "2. Get manager approval\n" \
-                   "3. Submit at least 2 weeks in advance\n\n" \
-                   "💡 *Emergency leaves can be applied retroactively with proper documentation.*"
-        
-        if any(word in message_lower for word in ["benefits", "insurance", "health", "medical", "dental", "retirement"]):
-            return "🏥 **Employee Benefits Package:**\n\n" \
-                   "**Health & Wellness:**\n" \
-                   "• Medical Insurance (90% company paid)\n" \
-                   "• Dental & Vision Coverage\n" \
-                   "• Mental Health Support\n" \
-                   "• Gym Membership Reimbursement\n\n" \
-                   "**Financial:**\n" \
-                   "• Provident Fund with company matching\n" \
-                   "• Life Insurance (2x annual salary)\n" \
-                   "• Disability Insurance\n\n" \
-                   "📞 Contact HR at hr@company.com for enrollment details."
-        
-        if any(word in message_lower for word in ["policy", "handbook", "rules", "code of conduct", "dress code", "remote work"]):
-            return "📋 **Company Policies:**\n\n" \
-                   "• **Employee Handbook:** Available on company intranet\n" \
-                   "• **Dress Code:** Business casual (Mon-Thu), Casual Friday\n" \
-                   "• **Remote Work:** Hybrid policy - 3 days office, 2 days remote\n" \
-                   "• **Working Hours:** 9 AM - 6 PM (flexible start between 8-10 AM)\n" \
-                   "• **Code of Conduct:** Zero tolerance for harassment\n\n" \
-                   "📖 *Full policies available at: company-intranet.com/policies*"
-        
-        if any(word in message_lower for word in ["training", "development", "course", "learning", "certification", "skill"]):
-            return "📚 **Learning & Development:**\n\n" \
-                   "**Available Programs:**\n" \
-                   "• Technical skill courses (Coursera, Udemy)\n" \
-                   "• Leadership development workshops\n" \
-                   "• Industry certifications (up to ₹1,50,000/year reimbursement)\n" \
-                   "• Internal mentorship program\n" \
-                   "• Conference attendance budget\n\n" \
-                   "💡 *Discuss your development goals with your manager during your next 1:1.*"
-        
-        if any(word in message_lower for word in ["hr contact", "hr email", "hr phone", "hr department", "human resources"]):
-            return "📞 **HR Department Contact:**\n\n" \
-                   "• **Email:** hr@company.com\n" \
-                   "• **Phone:** +91-80-1234-5678\n" \
-                   "• **Location:** Building A, Floor 2, Room 201\n" \
-                   "• **Hours:** 9 AM - 6 PM, Monday to Friday\n\n" \
-                   "**HR Team:**\n" \
-                   "• Meera Krishnan - HR Manager\n" \
-                   "• Kavya Reddy - HR Coordinator\n" \
-                   "• Rohit Sharma - Benefits Specialist"
-        
-        # Default response for regular employees
-        name = emp_info['name'].split()[0] if emp_info else username
-        return f"👋 Hi {name}! I can help you with:\n\n" \
-               "• 📊 Your attendance records\n• 👤 Your profile information\n• 🏖️ Your leave balance\n" \
-               "• 👥 Your manager & team details\n• 🏥 Benefits information\n" \
-               "• 📋 Company policies\n• 📚 Training opportunities\n• 📞 HR contact information\n\n" \
-               "What would you like to know about?"
-
+def generate_short_id():
+    """Generate a short ID for tickets"""
+    return str(uuid.uuid4())[:8]
 @app.route('/')
 def index():
     """Serve the main HTML page"""
-    return render_template('index.html')
+    return render_template('index.html') 
 
-@app.route('/login', methods=['POST'])
-def login():
-    """Handle user login with simple welcome messages"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "message": "Invalid request format."}), 400
-            
-        username = data.get('username', '').strip()
-        password = data.get('password', '').strip()
-        
-        if not username or not password:
-            return jsonify({"success": False, "message": "Username and password are required."}), 400
-        
-        if username in USERS and USERS[username]["password"] == password:
-            emp_info = get_employee_info(username)
-            user_role = USERS[username]["role"]
-            
-            # Simple welcome messages based on role
-            if user_role == "admin":
-                if emp_info:
-                    first_name = emp_info['name'].split()[0]
-                    welcome_msg = f"Hello {first_name}, Welcome back !!"
-                else:
-                    welcome_msg = "Hello Admin, Welcome back !!"
-            elif user_role == "hr":
-                if emp_info:
-                    first_name = emp_info['name'].split()[0]
-                    welcome_msg = f"Hello {first_name}, Welcome back !!"
-                else:
-                    welcome_msg = "Hello HR, Welcome back !!"
-            else:
-                # For regular employees
-                if emp_info:
-                    first_name = emp_info['name'].split()[0]
-                    welcome_msg = f"Hello {first_name}, Welcome back !!"
-                else:
-                    welcome_msg = f"Hello {username}, Welcome back !!"
-            
-            return jsonify({
-                "success": True,
-                "message": welcome_msg,
-                "username": username,
-                "role": user_role
-            })
-        else:
-            return jsonify({
-                "success": False,
-                "message": "Invalid credentials. Please check your username and password."
-            }), 401
-            
-    except Exception as e:
-        print(f"Login error: {str(e)}")  # Debug logging
-        return jsonify({
-            "success": False,
-            "message": "Server error during login. Please try again."
-        }), 500
-
-@app.route('/chat', methods=['POST'])
-def chat():
-    """Handle chat messages with enhanced error handling"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({
-                "success": False,
-                "message": "Invalid request format."
-            }), 400
-            
-        user_message = data.get('message', '').strip()
-        username = data.get('username', 'User')
-        
-        if not user_message:
-            return jsonify({
-                "success": False,
-                "message": "Please enter a message."
-            }), 400
-        
-        if not username or username not in USERS:
-            return jsonify({
-                "success": False,
-                "message": "Please log in first."
-            }), 401
-        
-        # Get HR bot response with user context
-        bot_response = find_hr_response(user_message, username)
-        
-        # Add timestamp
-        timestamp = datetime.now().strftime("%H:%M")
-        
-        return jsonify({
-            "success": True,
-            "user_message": user_message,
-            "bot_response": bot_response,
-            "timestamp": timestamp,
-            "username": username
-        })
-        
-    except Exception as e:
-        print(f"Chat error: {str(e)}")  # Debug logging
-        return jsonify({
-            "success": False,
-            "message": "Sorry, I encountered an error processing your request."
-        }), 500
-
-@app.route('/employee/<emp_id>', methods=['GET'])
-def get_employee(emp_id):
-    """API endpoint to get employee data (for admin/hr users)"""
-    try:
-        # In a real app, you'd verify the requesting user has appropriate permissions
-        if emp_id in EMPLOYEE_DATA:
-            return jsonify({
-                "success": True,
-                "employee": EMPLOYEE_DATA[emp_id]
-            })
-        else:
-            return jsonify({
-                "success": False,
-                "message": "Employee not found."
-            }), 404
-            
-    except Exception as e:
-        print(f"Employee lookup error: {str(e)}")
-        return jsonify({
-            "success": False,
-            "message": "Server error during employee lookup."
-        }), 500
-
-@app.route('/attendance/<username>', methods=['GET'])
-def get_attendance(username):
-    """API endpoint to get attendance data"""
-    try:
-        if username not in USERS:
-            return jsonify({
-                "success": False,
-                "message": "User not found."
-            }), 404
-            
-        emp_id = USERS[username]["emp_id"]
-        days = request.args.get('days', 30, type=int)
-        attendance_data = generate_attendance_data(emp_id, days)
-        
-        return jsonify({
-            "success": True,
-            "attendance": attendance_data,
-            "employee_id": emp_id,
-            "days_requested": days
-        })
-        
-    except Exception as e:
-        print(f"Attendance lookup error: {str(e)}")
-        return jsonify({
-            "success": False,
-            "message": "Server error during attendance lookup."
-        }), 500
-
-@app.route('/health', methods=['GET'])
-def health():
-    """Enhanced health check endpoint"""
+@app.route('/api/chat/start', methods=['POST'])
+def start_chat():
+    """Initialize a new chat session"""
+    session_id = generate_id()
+    conversations[session_id] = {
+        'messages': [
+            {
+                'id': generate_id(),
+                'sender': 'bot',
+                'message': HR_RESPONSES['greeting'],
+                'timestamp': datetime.now().isoformat(),
+                'actions': HR_ACTIONS
+            }
+        ],
+        'created_at': datetime.now().isoformat(),
+        'last_read': datetime.now().isoformat()
+    }
+    
     return jsonify({
-        "status": "HR Bot is running smoothly! 🤖",
-        "timestamp": datetime.now().isoformat(),
-        "version": "2.0",
-        "employees_loaded": len(EMPLOYEE_DATA),
-        "users_configured": len(USERS)
+        'session_id': session_id,
+        'message': 'Chat session started',
+        'initial_response': conversations[session_id]['messages'][0]
     })
 
-@app.route('/logout', methods=['POST'])
-def logout():
-    """Clear user session (dummy logout)"""
+@app.route('/api/chat/<session_id>/send', methods=['POST'])
+def send_message(session_id):
+    """Send a message in the chat"""
+    data = request.get_json()
+    user_message = data.get('message', '').strip()
+    action = data.get('action', None)
+    
+    if session_id not in conversations:
+        return jsonify({'error': 'Invalid session'}), 404
+    
+    # Add user message if there's text content
+    response_data = {}
+    if user_message:
+        user_msg = {
+            'id': generate_id(),
+            'sender': 'user',
+            'message': user_message,
+            'timestamp': datetime.now().isoformat()
+        }
+        conversations[session_id]['messages'].append(user_msg)
+        response_data['user_message'] = user_msg
+    
+    # Generate bot response based on action or message
+    bot_response = generate_bot_response(user_message, action, session_id)
+    conversations[session_id]['messages'].append(bot_response)
+    response_data['bot_response'] = bot_response
+    
+    # Update last_read timestamp
+    conversations[session_id]['last_read'] = datetime.now().isoformat()
+    
+    return jsonify(response_data)
+
+def generate_bot_response(message, action, session_id):
+    """Generate appropriate bot response"""
+    bot_msg = {
+        'id': generate_id(),
+        'sender': 'bot',
+        'timestamp': datetime.now().isoformat()
+    }
+    
+    if action:
+        if action == 'apply_leave':
+            bot_msg['message'] = "I'll help you apply for leave. Please provide the following details:"
+            bot_msg['form'] = {
+                'type': 'leave_application',
+                'fields': [
+                    {'name': 'leave_type', 'label': 'Leave Type', 'type': 'select', 'required': True,
+                     'options': ['Annual Leave', 'Sick Leave', 'Personal Leave', 'Emergency Leave', 'Maternity Leave']},
+                    {'name': 'start_date', 'label': 'Start Date', 'type': 'date', 'required': True},
+                    {'name': 'end_date', 'label': 'End Date', 'type': 'date', 'required': True},
+                    {'name': 'reason', 'label': 'Reason for Leave', 'type': 'textarea', 'required': True, 'placeholder': 'Please provide a brief reason for your leave request'}
+                ]
+            }
+        
+        elif action == 'get_benefit_plans':
+            bot_msg['message'] = "Here are the available benefit plans for employees:"
+            bot_msg['data'] = {
+                'type': 'benefit_plans',
+                'plans': benefit_plans
+            }
+            bot_msg['actions'] = [
+                {'id': 'enroll_benefit', 'label': 'Enroll in Benefits'},
+                {'id': 'benefit_details', 'label': 'Get More Details'}
+            ]
+        
+        elif action == 'get_salary_details':
+            bot_msg['message'] = "Here are your current salary details:"
+            bot_msg['data'] = {
+                'type': 'salary_details',
+                'details': {
+                    'employee_id': 'EMP001',
+                    'basic_salary': '$5,000',
+                    'house_allowance': '$800',
+                    'transport_allowance': '$200',
+                    'medical_allowance': '$150',
+                    'gross_salary': '$6,150',
+                    'tax_deduction': '$500',
+                    'pf_deduction': '$300',
+                    'insurance_premium': '$150',
+                    'net_salary': '$5,200',
+                    'pay_date': '28th of every month',
+                    'last_updated': '2025-08-01'
+                }
+            }
+        
+        elif action == 'holiday_list':
+            bot_msg['message'] = "Here's the official holiday list for 2025:"
+            bot_msg['data'] = {
+                'type': 'holidays',
+                'year': 2025,
+                'holidays': holidays
+            }
+        
+        elif action == 'create_ticket':
+            bot_msg['message'] = "I'll help you create a support ticket. Please provide the following information:"
+            bot_msg['form'] = {
+                'type': 'ticket_creation',
+                'fields': [
+                    {'name': 'category', 'label': 'Category', 'type': 'select', 'required': True,
+                     'options': ['IT Support', 'HR Query', 'Payroll Issue', 'Benefits', 'Equipment Request', 'Other']},
+                    {'name': 'priority', 'label': 'Priority Level', 'type': 'select', 'required': True,
+                     'options': ['Low', 'Medium', 'High', 'Critical']},
+                    {'name': 'subject', 'label': 'Subject', 'type': 'text', 'required': True, 'placeholder': 'Brief description of the issue'},
+                    {'name': 'description', 'label': 'Detailed Description', 'type': 'textarea', 'required': True,
+                     'placeholder': 'Please provide detailed information about your request or issue'}
+                ]
+            }
+        
+        elif action == 'get_ticket_details':
+            bot_msg['message'] = "I can help you check your ticket status. Here are your recent tickets:"
+            user_tickets = [t for t in tickets if t.get('created_by') == session_id]
+            if user_tickets:
+                bot_msg['data'] = {
+                    'type': 'user_tickets',
+                    'tickets': user_tickets[-5:]  # Show last 5 tickets
+                }
+            else:
+                bot_msg['message'] = "You don't have any support tickets yet. Would you like to create one?"
+                bot_msg['actions'] = [{'id': 'create_ticket', 'label': 'Create New Ticket'}]
+        
+        elif action == 'add_employee_dependent':
+            bot_msg['message'] = "I'll help you add a family dependent to your profile. Please provide the required information:"
+            bot_msg['form'] = {
+                'type': 'add_dependent',
+                'fields': [
+                    {'name': 'dependent_name', 'label': 'Full Name', 'type': 'text', 'required': True},
+                    {'name': 'relationship', 'label': 'Relationship', 'type': 'select', 'required': True,
+                     'options': ['Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister']},
+                    {'name': 'date_of_birth', 'label': 'Date of Birth', 'type': 'date', 'required': True},
+                    {'name': 'gender', 'label': 'Gender', 'type': 'select', 'required': True,
+                     'options': ['Male', 'Female', 'Other']},
+                    {'name': 'phone', 'label': 'Phone Number', 'type': 'text', 'required': False},
+                    {'name': 'emergency_contact', 'label': 'Emergency Contact', 'type': 'checkbox', 'required': False}
+                ]
+            }
+        
+        # Additional actions
+        elif action == 'enroll_benefit':
+            bot_msg['message'] = "To enroll in benefits, please contact HR at hr@company.com or call ext. 1234. Open enrollment period is from November 1-30 each year."
+        
+        elif action == 'benefit_details':
+            bot_msg['message'] = "For detailed benefit information including coverage limits, deductibles, and provider networks, please visit our employee portal or contact HR."
+    
+    else:
+        # Handle text-based queries
+        message_lower = message.lower() if message else ''
+        
+        # Greeting responses
+        if any(word in message_lower for word in ['hello', 'hi', 'hey', 'good morning', 'good afternoon']):
+            bot_msg['message'] = HR_RESPONSES['greeting']
+            bot_msg['actions'] = HR_ACTIONS
+        
+        # Farewell responses
+        elif any(word in message_lower for word in ['bye', 'goodbye', 'thank you', 'thanks']):
+            bot_msg['message'] = HR_RESPONSES['thanks']
+        
+        # Help or unclear messages
+        elif any(word in message_lower for word in ['help', 'assist', 'support']) or message_lower == '':
+            bot_msg['message'] = HR_RESPONSES['help']
+            bot_msg['actions'] = HR_ACTIONS
+        
+        # Specific keyword responses
+        elif any(word in message_lower for word in ['leave', 'vacation', 'time off']):
+            bot_msg['message'] = "I can help you with leave applications. Would you like to apply for leave?"
+            bot_msg['actions'] = [{'id': 'apply_leave', 'label': 'Apply for Leave'}]
+        
+        elif any(word in message_lower for word in ['salary', 'pay', 'payroll']):
+            bot_msg['message'] = "I can show you your salary details. Would you like to view them?"
+            bot_msg['actions'] = [{'id': 'get_salary_details', 'label': 'View Salary Details'}]
+        
+        elif any(word in message_lower for word in ['holiday', 'holidays']):
+            bot_msg['message'] = "Would you like to see the holiday calendar?"
+            bot_msg['actions'] = [{'id': 'holiday_list', 'label': 'View Holiday List'}]
+        
+        elif any(word in message_lower for word in ['ticket', 'issue', 'problem']):
+            bot_msg['message'] = "I can help you create a support ticket or check existing ones."
+            bot_msg['actions'] = [
+                {'id': 'create_ticket', 'label': 'Create New Ticket'},
+                {'id': 'get_ticket_details', 'label': 'Check My Tickets'}
+            ]
+        
+        elif any(word in message_lower for word in ['benefit', 'insurance', 'medical']):
+            bot_msg['message'] = "Would you like to see available benefit plans?"
+            bot_msg['actions'] = [{'id': 'get_benefit_plans', 'label': 'View Benefit Plans'}]
+        
+        # Default response
+        else:
+            bot_msg['message'] = "I understand you need assistance. " + HR_RESPONSES['help']
+            bot_msg['actions'] = HR_ACTIONS
+    
+    return bot_msg
+
+@app.route('/api/chat/<session_id>/submit-form', methods=['POST'])
+def submit_form(session_id):
+    """Handle form submissions"""
+    data = request.get_json()
+    form_type = data.get('form_type')
+    form_data = data.get('form_data')
+    
+    if session_id not in conversations:
+        return jsonify({'error': 'Invalid session'}), 404
+    
+    response_msg = {
+        'id': generate_id(),
+        'sender': 'bot',
+        'timestamp': datetime.now().isoformat(),
+        'feedback_request': True
+    }
+    
+    if form_type == 'leave_application':
+        # Process leave application
+        leave_id = generate_short_id()
+        leave_request = {
+            'id': leave_id,
+            'employee_id': session_id,
+            'leave_type': form_data.get('leave_type'),
+            'start_date': form_data.get('start_date'),
+            'end_date': form_data.get('end_date'),
+            'reason': form_data.get('reason'),
+            'status': 'Pending',
+            'applied_on': datetime.now().isoformat(),
+            'days_requested': calculate_leave_days(form_data.get('start_date'), form_data.get('end_date'))
+        }
+        leave_requests.append(leave_request)
+        
+        response_msg['message'] = f"✅ Your leave application has been submitted successfully!\n\n📋 Request ID: {leave_id}\n📅 Leave Type: {form_data.get('leave_type')}\n🗓️ Duration: {form_data.get('start_date')} to {form_data.get('end_date')}\n\nYour manager will review and respond within 2 business days. You'll receive an email notification once approved."
+        
+    elif form_type == 'ticket_creation':
+        # Process ticket creation
+        ticket_id = generate_short_id()
+        ticket = {
+            'id': ticket_id,
+            'category': form_data.get('category'),
+            'priority': form_data.get('priority'),
+            'subject': form_data.get('subject'),
+            'description': form_data.get('description'),
+            'status': 'Open',
+            'created_by': session_id,
+            'created_on': datetime.now().isoformat(),
+            'assigned_to': None,
+            'estimated_resolution': get_estimated_resolution(form_data.get('priority'))
+        }
+        tickets.append(ticket)
+        
+        response_msg['message'] = f"🎫 Your support ticket has been created successfully!\n\n🆔 Ticket ID: {ticket_id}\n📊 Priority: {form_data.get('priority')}\n📂 Category: {form_data.get('category')}\n⏱️ Expected Resolution: {ticket['estimated_resolution']}\n\nOur support team will respond within the expected timeframe. You can check your ticket status anytime."
+        
+    elif form_type == 'add_dependent':
+        # Process dependent addition
+        dependent_id = generate_id()
+        dependent = {
+            'id': dependent_id,
+            'employee_id': session_id,
+            'name': form_data.get('dependent_name'),
+            'relationship': form_data.get('relationship'),
+            'date_of_birth': form_data.get('date_of_birth'),
+            'gender': form_data.get('gender'),
+            'phone': form_data.get('phone', ''),
+            'emergency_contact': form_data.get('emergency_contact', False),
+            'added_on': datetime.now().isoformat(),
+            'age': calculate_age(form_data.get('date_of_birth'))
+        }
+        dependents.append(dependent)
+        
+        if session_id not in employees:
+            employees[session_id] = {'dependents': []}
+        employees[session_id]['dependents'].append(dependent)
+        
+        response_msg['message'] = f"👨‍👩‍👧‍👦 Dependent '{dependent['name']}' has been added successfully to your profile!\n\n👤 Name: {dependent['name']}\n🤝 Relationship: {dependent['relationship']}\n🎂 Age: {dependent['age']} years\n\nThey are now eligible for company benefits. HR will process the enrollment within 3-5 business days."
+    
+    conversations[session_id]['messages'].append(response_msg)
+    
+    return jsonify({'bot_response': response_msg})
+
+def calculate_leave_days(start_date, end_date):
+    """Calculate number of leave days"""
     try:
-        data = request.get_json()
-        username = data.get("username", "")
-        # You can also clear session/cookies here if using Flask-Login
-        return jsonify({
-            "success": True,
-            "message": f"User {username} has been logged out successfully."
-        })
-    except Exception as e:
-        return jsonify({"success": False, "message": "Logout failed."}), 500
+        from datetime import datetime
+        start = datetime.strptime(start_date, '%Y-%m-%d')
+        end = datetime.strptime(end_date, '%Y-%m-%d')
+        return (end - start).days + 1
+    except:
+        return 0
 
+def calculate_age(birth_date):
+    """Calculate age from birth date"""
+    try:
+        from datetime import datetime
+        birth = datetime.strptime(birth_date, '%Y-%m-%d')
+        today = datetime.now()
+        return today.year - birth.year - ((today.month, today.day) < (birth.month, birth.day))
+    except:
+        return 0
 
-@app.route('/debug/users', methods=['GET'])
-def debug_users():
-    """Debug endpoint to list available users (remove in production!)"""
-    user_list = []
-    for username, data in USERS.items():
-        emp_info = get_employee_info(username)
-        user_list.append({
-            "username": username,
-            "role": data["role"],
-            "name": emp_info["name"] if emp_info else "N/A",
-            "department": emp_info["department"] if emp_info else "N/A"
+def get_estimated_resolution(priority):
+    """Get estimated resolution time based on priority"""
+    resolution_times = {
+        'Critical': '4 hours',
+        'High': '24 hours',
+        'Medium': '3 business days',
+        'Low': '5 business days'
+    }
+    return resolution_times.get(priority, '5 business days')
+
+@app.route('/api/chat/<session_id>/feedback', methods=['POST'])
+def submit_feedback(session_id):
+    """Handle feedback submission"""
+    data = request.get_json()
+    feedback_type = data.get('type')  # 'satisfied' or 'not_satisfied'
+    
+    # Store feedback
+    feedback_entry = {
+        'id': generate_id(),
+        'session_id': session_id,
+        'type': feedback_type,
+        'timestamp': datetime.now().isoformat()
+    }
+    
+    feedback_msg = {
+        'id': generate_id(),
+        'sender': 'bot',
+        'message': HR_RESPONSES['thanks'],
+        'timestamp': datetime.now().isoformat()
+    }
+    
+    if session_id in conversations:
+        conversations[session_id]['messages'].append(feedback_msg)
+        conversations[session_id]['feedback'] = feedback_entry
+    
+    return jsonify({
+        'message': 'Feedback received successfully',
+        'bot_response': feedback_msg
+    })
+
+@app.route('/api/chat/<session_id>/history', methods=['GET'])
+def get_chat_history(session_id):
+    """Get chat history for a session"""
+    if session_id not in conversations:
+        return jsonify({'error': 'Session not found'}), 404
+    
+    return jsonify({
+        'session_id': session_id,
+        'messages': conversations[session_id]['messages'],
+        'created_at': conversations[session_id]['created_at'],
+        'last_read': conversations[session_id].get('last_read')
+    })
+
+@app.route('/api/sessions', methods=['GET'])
+def get_all_sessions():
+    """Get all chat sessions (admin endpoint)"""
+    sessions_summary = []
+    for session_id, conv in conversations.items():
+        sessions_summary.append({
+            'session_id': session_id,
+            'created_at': conv['created_at'],
+            'last_read': conv.get('last_read'),
+            'message_count': len(conv['messages']),
+            'last_message': conv['messages'][-1]['message'] if conv['messages'] else None,
+            'has_feedback': 'feedback' in conv
         })
     
     return jsonify({
-        "total_users": len(USERS),
-        "users": user_list
+        'sessions': sessions_summary,
+        'total_count': len(sessions_summary)
     })
+
+@app.route('/api/tickets', methods=['GET'])
+def get_tickets():
+    """Get all tickets (admin endpoint)"""
+    return jsonify({
+        'tickets': tickets,
+        'total_count': len(tickets),
+        'open_count': len([t for t in tickets if t['status'] == 'Open']),
+        'closed_count': len([t for t in tickets if t['status'] == 'Closed'])
+    })
+
+@app.route('/api/leave-requests', methods=['GET'])
+def get_leave_requests():
+    """Get all leave requests (admin endpoint)"""
+    return jsonify({
+        'leave_requests': leave_requests,
+        'total_count': len(leave_requests),
+        'pending_count': len([lr for lr in leave_requests if lr['status'] == 'Pending']),
+        'approved_count': len([lr for lr in leave_requests if lr['status'] == 'Approved'])
+    })
+
+@app.route('/api/employees/<employee_id>/dependents', methods=['GET'])
+def get_employee_dependents(employee_id):
+    """Get dependents for an employee"""
+    employee_dependents = [d for d in dependents if d['employee_id'] == employee_id]
+    return jsonify({
+        'employee_id': employee_id,
+        'dependents': employee_dependents,
+        'count': len(employee_dependents)
+    })
+
+@app.route('/api/holidays', methods=['GET'])
+def get_holidays():
+    """Get holiday list"""
+    return jsonify({
+        'holidays': holidays,
+        'year': 2025,
+        'count': len(holidays)
+    })
+
+@app.route('/api/benefit-plans', methods=['GET'])
+def get_benefit_plans():
+    """Get benefit plans"""
+    return jsonify({
+        'benefit_plans': benefit_plans,
+        'count': len(benefit_plans)
+    })
+
+@app.route('/api/dashboard/stats', methods=['GET'])
+def get_dashboard_stats():
+    """Get dashboard statistics"""
+    return jsonify({
+        'total_sessions': len(conversations),
+        'total_tickets': len(tickets),
+        'total_leave_requests': len(leave_requests),
+        'total_dependents': len(dependents),
+        'open_tickets': len([t for t in tickets if t['status'] == 'Open']),
+        'pending_leaves': len([lr for lr in leave_requests if lr['status'] == 'Pending']),
+        'today_sessions': len([c for c in conversations.values() 
+                              if c['created_at'].startswith(datetime.now().strftime('%Y-%m-%d'))]),
+        'satisfaction_rate': calculate_satisfaction_rate()
+    })
+
+def calculate_satisfaction_rate():
+    """Calculate satisfaction rate from feedback"""
+    feedbacks = [conv.get('feedback') for conv in conversations.values() if conv.get('feedback')]
+    if not feedbacks:
+        return 0
+    
+    satisfied_count = len([f for f in feedbacks if f['type'] == 'satisfied'])
+    return round((satisfied_count / len(feedbacks)) * 100, 2)
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'active_sessions': len(conversations),
+        'version': '1.0.0',
+        'uptime': 'Running'
+    })
+
+@app.route('/', methods=['GET'])
+def home():
+    """Root endpoint"""
+    return jsonify({
+        'message': 'HR Bot API is running',
+        'version': '1.0.0',
+        'endpoints': {
+            'start_chat': 'POST /api/chat/start',
+            'send_message': 'POST /api/chat/{session_id}/send',
+            'submit_form': 'POST /api/chat/{session_id}/submit-form',
+            'submit_feedback': 'POST /api/chat/{session_id}/feedback',
+            'chat_history': 'GET /api/chat/{session_id}/history',
+            'health_check': 'GET /api/health'
+        }
+    })
+
+# Error handlers
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({'error': 'Endpoint not found'}), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({'error': 'Internal server error'}), 500
+
+@app.errorhandler(400)
+def bad_request(error):
+    return jsonify({'error': 'Bad request'}), 400
 
 if __name__ == '__main__':
-    print("🤖 Enhanced HR Bot Starting...")
-    print("=" * 50)
-    print("📋 Sample login credentials:")
-    print("-" * 30)
-    
-    sample_users = ["rajesh.kumar", "priya.sharma", "amit.gupta", "admin", "hr"]
-    for user in sample_users:
-        if user in USERS:
-            emp_info = get_employee_info(user)
-            name = emp_info["name"] if emp_info else "N/A"
-            role = USERS[user]["role"]
-            print(f"   👤 {user:<15} | {USERS[user]['password']:<10} | {role:<8} | {name}")
-    
-    print("-" * 30)
-    print(f"👥 Total employees loaded: {len(EMPLOYEE_DATA)}")
-    print(f"🔐 Total user accounts: {len(USERS)}")
-    print("\n🌐 Server starting at: http://localhost:5000")
-    print("🛠️  Debug endpoints:")
-    print("   • /health - System status")
-    print("   • /debug/users - User list")
-    print("   • /attendance/<username> - Attendance API")
-    print("   • /employee/<emp_id> - Employee API")
-    print("\n💡 Press Ctrl+C to stop the server")
-    print("=" * 50)
-    
-    try:
-        app.run(debug=True, host='0.0.0.0', port=5000)
-    except KeyboardInterrupt:
-        print("\n🛑 Server stopped by user")
-    except Exception as e:
-        print(f"\n❌ Server error: {str(e)}")
-        print("🔍 Check the error details above for debugging")
+    print("🤖 HR Bot API Starting...")
+    print("📍 Server will be available at: http://localhost:5000")
+    print("📚 API Documentation at: http://localhost:5000")
+    print("🏥 Health check at: http://localhost:5000/api/health")
+    app.run(debug=True, host='0.0.0.0', port=5000)
