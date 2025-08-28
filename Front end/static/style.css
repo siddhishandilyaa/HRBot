@@ -135,6 +135,37 @@ body {
     color: #2196f3;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    margin-left: 16px;
+}
+
+.logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    color: #666;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.logout-btn:hover {
+    background: #e0e0e0;
+    color: #333;
+    transform: translateY(-1px);
+}
+
+.logout-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
 .chat-messages {
     flex: 1;
     overflow-y: auto;
@@ -208,12 +239,28 @@ body {
     border-color: #d0d0d0;
 }
 
+/* Teams-style action cards */
 .action-buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
     margin: 16px 0;
     margin-left: 42px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+}
+
+.action-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.action-card-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .action-btn {
@@ -226,7 +273,10 @@ body {
     text-align: center;
     font-size: 14px;
     color: #333;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    min-width: 140px;
+    flex: 1;
+    max-width: 180px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .action-btn:hover {
@@ -566,8 +616,12 @@ body {
         padding: 16px;
     }
     
-    .action-buttons {
-        grid-template-columns: 1fr;
+    .action-card-row {
+        flex-direction: column;
+    }
+    
+    .action-btn {
+        max-width: none;
     }
     
     .feedback-buttons {
@@ -577,6 +631,15 @@ body {
     .login-form {
         margin: 20px;
         padding: 24px;
+    }
+    
+    .header-actions {
+        margin-left: 8px;
+    }
+    
+    .logout-btn {
+        padding: 6px 10px;
+        font-size: 12px;
     }
 }
 
@@ -599,12 +662,21 @@ body {
     .main-content {
         flex: 1;
     }
+    
+    .nav-tabs {
+        display: none;
+    }
+    
+    .header-actions {
+        margin-left: auto;
+    }
 }
 
 /* Focus states for accessibility */
 .action-btn:focus,
 .feedback-btn:focus,
-.nav-tab:focus {
+.nav-tab:focus,
+.logout-btn:focus {
     outline: 2px solid #2196f3;
     outline-offset: 2px;
 }

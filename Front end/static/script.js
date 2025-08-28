@@ -11,6 +11,7 @@ const chatMessages = document.getElementById('chatMessages');
 const messageInput = document.getElementById('messageInput');
 const sendButton = document.getElementById('sendButton');
 const typingIndicator = document.getElementById('typingIndicator');
+const logoutBtn = document.getElementById('logoutBtn');
 
 // Configuration
 const API_BASE_URL = '';
@@ -37,6 +38,9 @@ function setupEventListeners() {
     messageInput.addEventListener('keypress', handleInputKeypress);
     messageInput.addEventListener('input', adjustTextareaHeight);
     
+    // Logout functionality
+    logoutBtn.addEventListener('click', handleLogout);
+    
     // Feedback buttons
     setupFeedbackButtons();
     
@@ -61,6 +65,7 @@ function checkStoredSession() {
         userRole = storedRole;
         hideLoginOverlay();
         enableChatInput();
+        showLogoutButton();
         addWelcomeMessage();
     }
 }
@@ -112,6 +117,7 @@ function handleLoginSuccess(data) {
     
     hideLoginOverlay();
     enableChatInput();
+    showLogoutButton();
     
     // Add welcome message and action buttons
     addBotMessage(data.message);
@@ -150,6 +156,74 @@ function enableChatInput() {
     sendButton.disabled = false;
     messageInput.placeholder = "Type a message...";
     messageInput.focus();
+}
+
+function showLogoutButton() {
+    logoutBtn.style.display = 'flex';
+}
+
+function hideLogoutButton() {
+    logoutBtn.style.display = 'none';
+}
+
+// Logout functionality
+async function handleLogout() {
+    try {
+        // Call logout endpoint
+        const response = await fetch(`${API_BASE_URL}/logout`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username: currentUser })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Show success message
+            addBotMessage(data.message);
+            
+            // Wait a moment then logout
+            setTimeout(() => {
+                logout();
+            }, 1500);
+        } else {
+            // Still logout even if server call fails
+            logout();
+        }
+    } catch (error) {
+        console.error('Logout error:', error);
+        // Still logout even if server call fails
+        logout();
+    }
+}
+
+function logout() {
+    currentUser = null;
+    userRole = null;
+    messageHistory = [];
+    
+    // Clear session storage
+    sessionStorage.removeItem('hrbot_user');
+    sessionStorage.removeItem('hrbot_role');
+    
+    // Reset UI
+    loginOverlay.classList.remove('hidden');
+    messageInput.disabled = true;
+    sendButton.disabled = true;
+    messageInput.placeholder = "Please login to chat...";
+    hideLogoutButton();
+    
+    // Clear login form
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+    
+    // Clear chat messages (optional)
+    // chatMessages.innerHTML = '';
+    
+    // Focus username input
+    focusUsernameInput();
 }
 
 // Chat functionality
@@ -288,48 +362,85 @@ function addActionButtons(role) {
     const buttons = getActionButtons(role);
     if (buttons.length === 0) return;
     
+    // Create Teams-style card container
     const actionDiv = document.createElement('div');
     actionDiv.className = 'action-buttons';
     
-    buttons.forEach(button => {
-        const btn = document.createElement('button');
-        btn.className = 'action-btn';
-        btn.textContent = button;
-        btn.setAttribute('data-action', button.toLowerCase().replace(/\s+/g, '-'));
-        btn.addEventListener('click', () => handleActionButton(button));
-        actionDiv.appendChild(btn);
-    });
+    // Add prompt text
+    const promptDiv = document.createElement('div');
+    promptDiv.style.marginBottom = '12px';
+    promptDiv.style.fontSize = '14px';
+    promptDiv.style.color = '#666';
+    promptDiv.textContent = 'Please choose an issue you need assistance with or just type your issue.';
+    actionDiv.appendChild(promptDiv);
     
+    // Create cards container
+    const cardsContainer = document.createElement('div');
+    cardsContainer.className = 'action-cards-container';
+    
+    // Split buttons into rows (like in the image)
+    const buttonsPerRow = 3;
+    for (let i = 0; i < buttons.length; i += buttonsPerRow) {
+        const row = document.createElement('div');
+        row.className = 'action-card-row';
+        
+        const rowButtons = buttons.slice(i, i + buttonsPerRow);
+        rowButtons.forEach(button => {
+            const btn = document.createElement('button');
+            btn.className = 'action-btn';
+            btn.textContent = button;
+            btn.setAttribute('data-action', button.toLowerCase().replace(/\s+/g, '-'));
+            btn.addEventListener('click', () => handleActionButton(button));
+            row.appendChild(btn);
+        });
+        
+        cardsContainer.appendChild(row);
+    }
+    
+    actionDiv.appendChild(cardsContainer);
     chatMessages.appendChild(actionDiv);
     scrollToBottom();
     animateMessageIn(actionDiv);
 }
 
 function getActionButtons(role) {
+    // Teams-style button layout like in the image
     const buttonConfig = {
         admin: [
-            'Security Management',
-            'AI Analytics', 
-            'Disaster Recovery',
-            'System Integration'
+            'Apply leave',
+            'Get benefit plans', 
+            'Get salary details',
+            'Holiday list',
+            'Create ticket',
+            'Get ticket details',
+            'Add employee dependent'
         ],
         hr: [
-            'Individual Attendance',
-            'Monthly Payroll',
-            'Talent Pipeline', 
-            'Wellness Dashboard'
+            'Apply leave',
+            'Get benefit plans',
+            'Get salary details',
+            'Holiday list',
+            'Create ticket',
+            'Get ticket details',
+            'Add employee dependent'
         ],
         employee: [
-            'Enhanced Profile',
-            'Leave Balance',
-            'Monthly Feedback',
-            'Wellness Report'
+            'Apply leave',
+            'Get benefit plans',
+            'Get salary details',
+            'Holiday list',
+            'Create ticket',
+            'Get ticket details',
+            'Add employee dependent'
         ],
         manager: [
-            'Enhanced Profile',
-            'Leave Balance',
-            'Monthly Feedback',
-            'Wellness Report'
+            'Apply leave',
+            'Get benefit plans',
+            'Get salary details',
+            'Holiday list',
+            'Create ticket',
+            'Get ticket details',
+            'Add employee dependent'
         ]
     };
     
@@ -465,33 +576,6 @@ function updateSidebarInfo() {
     if (chatItemPreview) {
         chatItemPreview.textContent = `Logged in as ${userRole}`;
     }
-}
-
-// Logout functionality
-function logout() {
-    currentUser = null;
-    userRole = null;
-    messageHistory = [];
-    
-    // Clear session storage
-    sessionStorage.removeItem('hrbot_user');
-    sessionStorage.removeItem('hrbot_role');
-    
-    // Reset UI
-    loginOverlay.classList.remove('hidden');
-    messageInput.disabled = true;
-    sendButton.disabled = true;
-    messageInput.placeholder = "Please login to chat...";
-    
-    // Clear login form
-    document.getElementById('username').value = '';
-    document.getElementById('password').value = '';
-    
-    // Clear chat messages (optional)
-    // chatMessages.innerHTML = '';
-    
-    // Focus username input
-    focusUsernameInput();
 }
 
 // Keyboard shortcuts
