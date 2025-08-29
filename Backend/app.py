@@ -116,12 +116,139 @@ def get_employee_info(username):
     
     return EMPLOYEE_DATA[emp_id]
 
+# In-memory chat history store (per user)
+CHAT_HISTORY = {}
+# In-memory leave application state per user
+LEAVE_STATE = {}
+
+# List of Indian holidays
+HOLIDAYS = [
+    {"name": "Republic Day", "date": "26-01-2024"},
+    {"name": "Holi", "date": "25-03-2024"},
+    {"name": "Good Friday", "date": "29-03-2024"},
+    {"name": "Eid al-Fitr", "date": "11-04-2024"},
+    {"name": "Independence Day", "date": "15-08-2024"},
+    {"name": "Raksha Bandhan", "date": "19-08-2024"},
+    {"name": "Janmashtami", "date": "26-08-2024"},
+    {"name": "Gandhi Jayanti", "date": "02-10-2024"},
+    {"name": "Dussehra", "date": "12-10-2024"},
+    {"name": "Diwali", "date": "01-11-2024"},
+    {"name": "Christmas", "date": "25-12-2024"}
+]
+
+def get_holiday_list():
+    holidays = "\n".join([f"{h['name']}: {h['date']}" for h in HOLIDAYS])
+    return f"🎉 **Upcoming Holidays:**\n{holidays}"
+
 def find_hr_response(message, username):
     """Find the most appropriate HR response based on keywords and user role"""
     message_lower = message.lower()
     emp_info = get_employee_info(username)
     user_role = USERS[username]["role"]
-    
+
+    # Feedback form link (only show after leave flow, not here)
+    if any(word in message_lower for word in ["feedback", "feedback form"]):
+        return (
+            "📝 **Feedback Form:**\n\n"
+            "We value your feedback! Please fill out the form at the following link:\n"
+            "👉 [Employee Feedback Form](https://docs.google.com/forms/d/e/1FAIpQLSf5FqAAR8MZa36yiTM_YfEJ_HObnHdexKrfV0fyBOxwg4Wkkg/viewform?usp=header)"
+        )
+
+    # Show holiday list if asked
+    if any(word in message_lower for word in ["holiday list", "holidays", "public holidays", "festival"]):
+        return get_holiday_list()
+
+    # --- Leave Application Flow ---
+    # Only for employees/managers
+    if user_role in ["employee", "manager"]:
+        state = LEAVE_STATE.get(username, {})
+
+        # Allow user to cancel leave application at any step
+        if message_lower in ["/stop", "cancel", "exit", "quit"]:
+            if username in LEAVE_STATE:
+                LEAVE_STATE.pop(username, None)
+                return "🚫 Leave application process cancelled."
+            # If not in flow, just ignore
+            # ...continue to other responses...
+
+        # Step 1: Initiate leave application
+        if ("apply leave" in message_lower or "leave application" in message_lower) and not state:
+            LEAVE_STATE[username] = {"step": 1}
+            return (
+                "📝 **Want to apply for leave?**\n"
+                "When do you want to apply for leave? (Leave start date)\n"
+                "Please provide the date in this format: DD-MM-YY\n"
+                "Type `/stop` or `cancel` to exit leave application at any time."
+            )
+        # Step 2: Get start date
+        if state.get("step") == 1:
+            # Try to parse date in DD-MM-YY
+            try:
+                start_date = datetime.strptime(message.strip(), "%d-%m-%y")
+                LEAVE_STATE[username] = {"step": 2, "start_date": start_date.strftime("%d-%m-%Y")}
+                # Updated leave types with Indian context
+                leave_types = [
+                    "Vacation Leave",
+                    "Sick Leave",
+                    "COVID-19 Related Absence",
+                    "Bereavement Leave",
+                    "Comp/In Lieu Time",
+                    "FMLA"
+                ]
+                leave_list = "\n".join([f"{i+1}. {lt}" for i, lt in enumerate(leave_types)])
+                # Get employee leave balance
+                leave_balance = ""
+                if emp_info and "leave_balance" in emp_info:
+                    leave_balance = (
+                        f"Your Leave Balance:\n"
+                        f"• Annual: {emp_info['leave_balance'].get('annual', 0)} days\n"
+                        f"• Sick: {emp_info['leave_balance'].get('sick', 0)} days\n"
+                    )
+                return (
+                    "Please wait while I grab your available leaves data.\n"
+                    "It takes a few seconds.\n\n"
+                    f"{leave_balance}"
+                    "Here are your available leaves:\n"
+                    f"{leave_list}\n\n"
+                    "What is the reason for your leave? (Please select one of the above or type your reason)\n"
+                    "Type `/stop` or `cancel` to exit leave application at any time."
+                )
+            except Exception:
+                return "❌ Please provide the date in the correct format: DD-MM-YY"
+        # Step 3: Get leave reason
+        if state.get("step") == 2:
+            LEAVE_STATE[username] = {
+                "step": 3,
+                "start_date": state["start_date"],
+                "reason": message.strip()
+            }
+            return (
+                "When is the end date of leave?\n"
+                "Please provide the date in this format: DD-MM-YY\n"
+                "Type `/stop` or `cancel` to exit leave application at any time."
+            )
+        # Step 4: Get end date and finish
+        if state.get("step") == 3:
+            try:
+                end_date = datetime.strptime(message.strip(), "%d-%m-%y")
+                start_date = state["start_date"]
+                reason = state["reason"]
+                LEAVE_STATE.pop(username, None)
+                # Show feedback prompt only after leave application is done
+                return (
+                    f"✅ Your leave application has been recorded.\n"
+                    f"Start Date: {start_date}\n"
+                    f"End Date: {end_date.strftime('%d-%m-%Y')}\n"
+                    f"Reason: {reason}\n"
+                    "Your request will be sent to your manager for approval.\n\n"
+                    "Thank you for using the leave application service!\n"
+                    "🙏 **Please let us know your feedback:**\n"
+                    "Or fill out the feedback form: [Employee Feedback Form](https://docs.google.com/forms/d/e/1FAIpQLSf5FqAAR8MZa36yiTM_YfEJ_HObnHdexKrfV0fyBOxwg4Wkkg/viewform?usp=header)"
+                )
+            except Exception:
+                return "❌ Please provide the end date in the correct format: DD-MM-YY"
+    # --- End Leave Application Flow ---
+
     # Admin users - Technical queries only
     if user_role == "admin":
         if any(word in message_lower for word in ["server", "system", "database", "backup", "maintenance", "technical", "logs", "performance"]):
@@ -360,6 +487,11 @@ def generate_attendance_data(emp_id, days=30):
     
     return attendance_data
 
+# In-memory chat history store (per user)
+CHAT_HISTORY = {}
+# In-memory leave application state per user
+LEAVE_STATE = {}
+
 @app.route('/')
 def index():
     """Serve the main HTML page"""
@@ -380,6 +512,8 @@ def login():
             return jsonify({"success": False, "message": "Username and password are required."}), 400
         
         if username in USERS and USERS[username]["password"] == password:
+            # Clear previous chat history on login
+            CHAT_HISTORY.pop(username, None)
             emp_info = get_employee_info(username)
             user_role = USERS[username]["role"]
             
@@ -451,6 +585,13 @@ def chat():
         
         # Get HR bot response with user context
         bot_response = find_hr_response(user_message, username)
+        
+        # Store chat history (if needed)
+        CHAT_HISTORY.setdefault(username, []).append({
+            "user_message": user_message,
+            "bot_response": bot_response,
+            "timestamp": datetime.now().strftime("%H:%M")
+        })
         
         # Add timestamp
         timestamp = datetime.now().strftime("%H:%M")
@@ -537,6 +678,10 @@ def logout():
         data = request.get_json()
         username = data.get("username", "")
         # You can also clear session/cookies here if using Flask-Login
+
+        # Clear previous chat history for the user
+        CHAT_HISTORY.pop(username, None)
+
         return jsonify({
             "success": True,
             "message": f"User {username} has been logged out successfully."
