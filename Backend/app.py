@@ -120,21 +120,36 @@ def get_employee_info(username):
 CHAT_HISTORY = {}
 # In-memory leave application state per user
 LEAVE_STATE = {}
+# In-memory leave requests for HR approval
+LEAVE_REQUESTS = []
 
-# List of Indian holidays
-HOLIDAYS = [
-    {"name": "Republic Day", "date": "26-01-2024"},
-    {"name": "Holi", "date": "25-03-2024"},
-    {"name": "Good Friday", "date": "29-03-2024"},
-    {"name": "Eid al-Fitr", "date": "11-04-2024"},
-    {"name": "Independence Day", "date": "15-08-2024"},
-    {"name": "Raksha Bandhan", "date": "19-08-2024"},
-    {"name": "Janmashtami", "date": "26-08-2024"},
-    {"name": "Gandhi Jayanti", "date": "02-10-2024"},
-    {"name": "Dussehra", "date": "12-10-2024"},
-    {"name": "Diwali", "date": "01-11-2024"},
-    {"name": "Christmas", "date": "25-12-2024"}
-]
+# In-memory support tickets
+SUPPORT_TICKETS = []
+TICKET_CATEGORIES = ["Payroll Issue", "Technical", "ID Card", "Policy Issue", "Other"]
+
+# Add a mock assignment and updates/comments for demonstration
+def get_ticket_assigned_to(ticket):
+    # Assign to HR or IT Support based on category
+    cat = ticket["category"].lower()
+    if "payroll" in cat or "policy" in cat:
+        return "HR Team"
+    elif "technical" in cat or "id card" in cat:
+        return "IT Support"
+    else:
+        return "Support Team"
+
+def get_ticket_updates(ticket):
+    # For demo, show a static update if status is not Open
+    if ticket["status"] == "Open":
+        return "No updates yet."
+    elif ticket["status"] == "In Progress":
+        return "Your ticket is being reviewed by our team."
+    elif ticket["status"] == "Resolved":
+        return "Your issue has been resolved."
+    elif ticket["status"] == "Closed":
+        return "Ticket closed. Please contact support if you have further issues."
+    else:
+        return "No updates yet."
 
 def get_holiday_list():
     holidays = "\n".join([f"{h['name']}: {h['date']}" for h in HOLIDAYS])
@@ -146,25 +161,33 @@ def find_hr_response(message, username):
     emp_info = get_employee_info(username)
     user_role = USERS[username]["role"]
 
+    # General conversational replies
+    if any(word in message_lower for word in ["thank you", "thanks", "thx", "thankyou"]):
+        return "You're welcome! 😊 If you need anything else, just ask."
+    if any(word in message_lower for word in ["bye", "goodbye", "see you", "see ya", "see u"]):
+        return "Goodbye! Have a great day! 👋"
+    if any(word in message_lower for word in ["how are you", "how r u", "how are u", "how's it going"]):
+        return "I'm good, How can I assist you today?"
+    if any(word in message_lower for word in ["hello", "hi", "hey", "good morning", "good afternoon", "good evening"]):
+        return "Hello! How can I help you today?"
+
     # Feedback form link (only show after leave flow, not here)
     if any(word in message_lower for word in ["feedback", "feedback form"]):
         return (
-            "📝 **Feedback Form:**\n\n"
-            "We value your feedback! Please fill out the form at the following link:\n"
-            "👉 [Employee Feedback Form](https://docs.google.com/forms/d/e/1FAIpQLSf5FqAAR8MZa36yiTM_YfEJ_HObnHdexKrfV0fyBOxwg4Wkkg/viewform?usp=header)"
+            '<a href="https://docs.google.com/forms/d/e/1FAIpQLSf5FqAAR8MZa36yiTM_YfEJ_HObnHdexKrfV0fyBOxwg4Wkkg/viewform?usp=header" target="_blank">'
+            '📝 Open Employee Feedback Form</a>'
         )
 
     # Show holiday list if asked
     if any(word in message_lower for word in ["holiday list", "holidays", "public holidays", "festival"]):
         return get_holiday_list()
 
-    # --- Leave Application Flow ---
-    # Only for employees/managers
+    # --- Leave Application Flow for Employees/Managers ---
     if user_role in ["employee", "manager"]:
         state = LEAVE_STATE.get(username, {})
 
         # Allow user to cancel leave application at any step
-        if message_lower in ["/stop", "cancel", "exit", "quit"]:
+        if message_lower in ["stop", "cancel", "exit", "quit"]:
             if username in LEAVE_STATE:
                 LEAVE_STATE.pop(username, None)
                 return "🚫 Leave application process cancelled."
@@ -178,7 +201,7 @@ def find_hr_response(message, username):
                 "📝 **Want to apply for leave?**\n"
                 "When do you want to apply for leave? (Leave start date)\n"
                 "Please provide the date in this format: DD-MM-YY\n"
-                "Type `/stop` or `cancel` to exit leave application at any time."
+                "Type `stop` or `cancel` to exit leave application at any time."
             )
         # Step 2: Get start date
         if state.get("step") == 1:
@@ -196,13 +219,17 @@ def find_hr_response(message, username):
                     "FMLA"
                 ]
                 leave_list = "\n".join([f"{i+1}. {lt}" for i, lt in enumerate(leave_types)])
-                # Get employee leave balance
+                # Get employee leave balance with total and remaining
                 leave_balance = ""
                 if emp_info and "leave_balance" in emp_info:
+                    total_annual = 21  # Assuming company policy
+                    total_sick = 10    # Assuming company policy
+                    remaining_annual = emp_info['leave_balance'].get('annual', 0)
+                    remaining_sick = emp_info['leave_balance'].get('sick', 0)
                     leave_balance = (
                         f"Your Leave Balance:\n"
-                        f"• Annual: {emp_info['leave_balance'].get('annual', 0)} days\n"
-                        f"• Sick: {emp_info['leave_balance'].get('sick', 0)} days\n"
+                        f"• Total Annual: {total_annual} days | Remaining: {remaining_annual} days\n"
+                        f"• Total Sick: {total_sick} days | Remaining: {remaining_sick} days\n"
                     )
                 return (
                     "Please wait while I grab your available leaves data.\n"
@@ -211,7 +238,7 @@ def find_hr_response(message, username):
                     "Here are your available leaves:\n"
                     f"{leave_list}\n\n"
                     "What is the reason for your leave? (Please select one of the above or type your reason)\n"
-                    "Type `/stop` or `cancel` to exit leave application at any time."
+                    "Type `stop` or `cancel` to exit leave application at any time."
                 )
             except Exception:
                 return "❌ Please provide the date in the correct format: DD-MM-YY"
@@ -234,7 +261,16 @@ def find_hr_response(message, username):
                 start_date = state["start_date"]
                 reason = state["reason"]
                 LEAVE_STATE.pop(username, None)
-                # Show feedback prompt only after leave application is done
+                # Store leave request for HR approval
+                LEAVE_REQUESTS.append({
+                    "employee": emp_info["name"] if emp_info else username,
+                    "emp_id": USERS[username]["emp_id"],
+                    "start_date": start_date,
+                    "end_date": end_date.strftime('%d-%m-%Y'),
+                    "reason": reason,
+                    "status": "Pending"
+                })
+                # Remove feedback links from the response
                 return (
                     f"✅ Your leave application has been recorded.\n"
                     f"Start Date: {start_date}\n"
@@ -242,12 +278,96 @@ def find_hr_response(message, username):
                     f"Reason: {reason}\n"
                     "Your request will be sent to your manager for approval.\n\n"
                     "Thank you for using the leave application service!\n"
-                    "🙏 **Please let us know your feedback:**\n"
-                    "Or fill out the feedback form: [Employee Feedback Form](https://docs.google.com/forms/d/e/1FAIpQLSf5FqAAR8MZa36yiTM_YfEJ_HObnHdexKrfV0fyBOxwg4Wkkg/viewform?usp=header)"
                 )
             except Exception:
                 return "❌ Please provide the end date in the correct format: DD-MM-YY"
     # --- End Leave Application Flow ---
+
+    # --- HR Leave Management ---
+    if user_role == "hr":
+        # Remove apply leave for HR, replace with leave requests option
+        if "apply leave" in message_lower or "leave application" in message_lower:
+            return (
+                "🗂️ As HR, you can view and manage employee leave requests.\n"
+                "• To see all employee leave balances, type: `employee leaves`\n"
+                "• To see pending leave requests, type: `leave requests`\n"
+                "• To approve/dismiss, type: `approve <number>` or `dismiss <number>`"
+            )
+
+        # Show all employee leave balances
+        if any(word in message_lower for word in ["employee leaves", "show leaves", "all leaves", "leave balance"]):
+            response = "🗂️ **Employee Leave Balances:**\n\n"
+            for emp_id, emp in EMPLOYEE_DATA.items():
+                response += (
+                    f"• {emp['name']} (ID: {emp_id}) - "
+                    f"Annual: {emp['leave_balance'].get('annual', 0)} days, "
+                    f"Sick: {emp['leave_balance'].get('sick', 0)} days\n"
+                )
+            return response
+
+        # Show pending leave requests for approval
+        if any(word in message_lower for word in ["leave requests", "pending leaves", "approve leave", "leave approvals"]):
+            if not LEAVE_REQUESTS or all(r["status"] != "Pending" for r in LEAVE_REQUESTS):
+                return "📋 There are no pending leave requests at the moment."
+            response = "📋 **Pending Leave Requests:**\n\n"
+            for idx, req in enumerate(LEAVE_REQUESTS):
+                if req["status"] == "Pending":
+                    response += (
+                        f"Request #{idx+1}:\n"
+                        f"• Employee: {req['employee']} (ID: {req['emp_id']})\n"
+                        f"• Start Date: {req['start_date']}\n"
+                        f"• End Date: {req['end_date']}\n"
+                        f"• Reason: {req['reason']}\n"
+                        f"• Status: {req['status']}\n"
+                        f"To approve: type `approve {idx+1}`\n"
+                        f"To dismiss: type `dismiss {idx+1}`\n\n"
+                    )
+            return response
+
+        # Approve or dismiss a leave request
+        if message_lower.startswith("approve ") or message_lower.startswith("dismiss "):
+            parts = message_lower.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                req_idx = int(parts[1]) - 1
+                if 0 <= req_idx < len(LEAVE_REQUESTS):
+                    req = LEAVE_REQUESTS[req_idx]
+                    if req["status"] != "Pending":
+                        return f"Request #{req_idx+1} has already been processed."
+                    if message_lower.startswith("approve "):
+                        req["status"] = "Approved"
+                        action_msg = (
+                            f"✅ Leave request for {req['employee']} (ID: {req['emp_id']}) "
+                            f"from {req['start_date']} to {req['end_date']} has been **APPROVED**.\n"
+                        )
+                    else:
+                        req["status"] = "Dismissed"
+                        action_msg = (
+                            f"❌ Leave request for {req['employee']} (ID: {req['emp_id']}) "
+                            f"from {req['start_date']} to {req['end_date']} has been **DISMISSED**.\n"
+                        )
+                    # Show remaining pending requests, if any
+                    remaining = [r for r in LEAVE_REQUESTS if r["status"] == "Pending"]
+                    if remaining:
+                        response = "📋 **Remaining Pending Leave Requests:**\n\n"
+                        for idx, r in enumerate(LEAVE_REQUESTS):
+                            if r["status"] == "Pending":
+                                response += (
+                                    f"Request #{idx+1}:\n"
+                                    f"• Employee: {r['employee']} (ID: {r['emp_id']})\n"
+                                    f"• Start Date: {r['start_date']}\n"
+                                    f"• End Date: {r['end_date']}\n"
+                                    f"• Reason: {r['reason']}\n"
+                                    f"• Status: {r['status']}\n"
+                                    f"To approve: type `approve {idx+1}`\n"
+                                    f"To dismiss: type `dismiss {idx+1}`\n\n"
+                                )
+                        return action_msg + response
+                    else:
+                        return action_msg + "📋 There are no pending leave requests at the moment."
+                else:
+                    return "Invalid request number."
+            else:
+                return "Invalid command format. Use `approve <number>` or `dismiss <number>`."
 
     # Admin users - Technical queries only
     if user_role == "admin":
@@ -365,6 +485,14 @@ def find_hr_response(message, username):
         
         # Salary queries
         if any(word in message_lower for word in ["salary", "pay", "payroll", "compensation"]):
+            # If in ticket creation flow and selected Payroll Issue, prompt for issue details instead of showing salary info
+            state = LEAVE_STATE.get(username, {})
+            if state.get("ticket_step") == 1 and (
+                state.get("ticket_category", "").lower() == "payroll issue" or
+                message_lower.strip() == "payroll issue"
+            ):
+                LEAVE_STATE[username] = {"ticket_step": 2, "ticket_category": "Payroll Issue"}
+                return "Please describe your issue in detail."
             if emp_info:
                 return f"💰 **Your Salary Information:**\n\n" \
                        f"**Basic Salary:** ₹{emp_info['salary']:,}/year\n" \
@@ -379,17 +507,37 @@ def find_hr_response(message, username):
         # Leave queries
         if any(word in message_lower for word in ["leave", "vacation", "time off", "holiday"]):
             if emp_info:
-                return f"🏖️ **Your Leave Information:**\n\n" \
-                       f"**Annual Leave Balance:** {emp_info['leave_balance']['annual']} days\n" \
-                       f"**Sick Leave Balance:** {emp_info['leave_balance']['sick']} days\n" \
-                       f"**Total Available:** {emp_info['leave_balance']['annual'] + emp_info['leave_balance']['sick']} days\n\n" \
-                       f"📋 **Leave Policy:**\n" \
-                       f"• Annual Leave: 21 days/year\n" \
-                       f"• Sick Leave: 10 days/year\n" \
-                       f"• Personal Leave: 5 days/year\n" \
-                       f"• Maternity Leave: 26 weeks\n\n" \
-                       f"📝 **To Apply Leave:**\n" \
-                       f"Contact your manager: {emp_info['manager']}"
+                # Leave balances
+                leave_info = (
+                    f"🏖️ **Your Leave Information:**\n\n"
+                    f"**Annual Leave Balance:** {emp_info['leave_balance']['annual']} days\n"
+                    f"**Sick Leave Balance:** {emp_info['leave_balance']['sick']} days\n"
+                    f"**Total Available:** {emp_info['leave_balance']['annual'] + emp_info['leave_balance']['sick']} days\n\n"
+                    f"📋 **Leave Policy:**\n"
+                    f"• Annual Leave: 21 days/year\n"
+                    f"• Sick Leave: 10 days/year\n"
+                    f"• Personal Leave: 5 days/year\n"
+                    f"• Maternity Leave: 26 weeks\n\n"
+                    f"📝 **To Apply Leave:**\n"
+                    f"Contact your manager: {emp_info['manager']}\n"
+                )
+                # Show leave request status for this user
+                emp_id = USERS[username]["emp_id"]
+                user_requests = [r for r in LEAVE_REQUESTS if r["emp_id"] == emp_id]
+                if user_requests:
+                    status_vocab = {
+                        "Pending": "**Pending**",
+                        "Approved": "**Approved**",
+                        "Dismissed": "**Rejected**"
+                    }
+                    leave_info += "\n🗂️ **Your Leave Requests Status:**\n"
+                    for idx, req in enumerate(user_requests, 1):
+                        status_word = status_vocab.get(req["status"], f"**{req['status']}**")
+                        leave_info += (
+                            f"{idx}. {req['start_date']} to {req['end_date']} | Reason: {req['reason']} | "
+                            f"Status: {status_word}\n"
+                        )
+                return leave_info
             else:
                 return "❌ Sorry, I couldn't find your leave information. Please contact HR."
         
@@ -418,7 +566,16 @@ def find_hr_response(message, username):
                    "📞 **For Claims:** Contact HR at ext. 1234"
         
         # Policy queries
-        if any(word in message_lower for word in ["policy", "rule", "guideline", "procedure"]):
+        if any(word in message_lower for word in ["policy issue", "rule", "guideline", "procedure"]):
+            # If in ticket creation flow, treat as ticket category selection
+            state = LEAVE_STATE.get(username, {})
+            if state.get("ticket_step") == 1:
+                LEAVE_STATE[username] = {"ticket_step": 2, "ticket_category": "Policy Issue"}
+                return (
+                    "You selected **Policy Issue**.\n"
+                    "Please describe your issue in detail."
+                )
+            # Otherwise, show company policies as usual
             return "📋 **Company Policies:**\n\n" \
                    "**Work Hours:** 9:00 AM - 6:00 PM\n" \
                    "**Dress Code:** Business Casual\n" \
@@ -439,17 +596,147 @@ def find_hr_response(message, username):
                    "• 📋 Company policies\n" \
                    "• 📞 Contact information\n\n" \
                    "Just ask me anything!"
-        
-        # Default response
-        return "🤖 **HR Assistant**\n\n" \
-               "I can help you with:\n" \
-               "• 👤 Your personal information\n" \
-               "• 💰 Salary details\n" \
-               "• 🏖️ Leave balance and applications\n" \
-               "• 📊 Attendance tracking\n" \
-               "• 🏥 Benefits information\n" \
-               "• 📋 Company policies\n\n" \
-               "What would you like to know about?"
+
+        # --- Support Ticket Creation Flow ---
+        # Create ticket flow - Step 1: Start ticket creation
+        if "create ticket" in message_lower and "ticket_category" not in LEAVE_STATE.get(username, {}):
+            LEAVE_STATE[username] = {"ticket_step": 1}
+            categories = "\n".join([f"{i+1}. {cat}" for i, cat in enumerate(TICKET_CATEGORIES)])
+            return (
+                "Please select a category for your issue:\n"
+                f"{categories}\n"
+                "Type the category name or number."
+            )
+
+        # Create ticket flow - Step 2: Select category
+        state = LEAVE_STATE.get(username, {})
+        if state.get("ticket_step") == 1:
+            selected = message.strip().lower()
+            category = None
+            # Match by number or name
+            if selected.isdigit() and 1 <= int(selected) <= len(TICKET_CATEGORIES):
+                category = TICKET_CATEGORIES[int(selected)-1]
+            else:
+                for cat in TICKET_CATEGORIES:
+                    if cat.lower() in selected:
+                        category = cat
+                        break
+            if category:
+                LEAVE_STATE[username] = {"ticket_step": 2, "ticket_category": category}
+                return "Please describe your issue in detail."
+            else:
+                return "Invalid category. Please type the category name or number from the list."
+
+        # Create ticket flow - Step 3: Enter issue description
+        if state.get("ticket_step") == 2 and "ticket_category" in state:
+            issue_desc = message.strip()
+            ticket_no = f"TKT{len(SUPPORT_TICKETS)+1:04d}"
+            ticket_category = state["ticket_category"]
+            assigned_to = get_ticket_assigned_to({"category": ticket_category})
+            SUPPORT_TICKETS.append({
+                "ticket_no": ticket_no,
+                "username": username,
+                "category": ticket_category,
+                "description": issue_desc,
+                "status": "Open",
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "assigned_to": assigned_to,
+                "updates": "No updates yet."
+            })
+            LEAVE_STATE.pop(username, None)
+            return (
+                f"Your ticket has been created.\n"
+                f"Ticket No: **{ticket_no}**\n"
+                f"Assigned To: {assigned_to}\n"
+                "Thank you! We'll get back to you soon."
+            )
+
+        # Show ticket details for user
+        if "get ticket details" in message_lower or "my tickets" in message_lower:
+            user_tickets = [t for t in SUPPORT_TICKETS if t["username"] == username]
+            if not user_tickets:
+                return "You have no support tickets."
+            response = "🎫 **Your Support Tickets:**\n"
+            for t in user_tickets:
+                response += (
+                    f"• **Ticket No:** {t['ticket_no']}\n"
+                    f"  **Issue:** {t['description']}\n"
+                    f"  **Created Date:** {t['created_at']}\n"
+                    f"  **Current Status:** {t['status']}\n"
+                    f"  **Assigned To:** {t.get('assigned_to', get_ticket_assigned_to(t))}\n"
+                    f"  **Updates/Comments:** {t.get('updates', get_ticket_updates(t))}\n\n"
+                )
+            return response
+
+    # HR: View all support tickets and take action
+    if USERS[username]["role"] == "hr":
+        # Accept both "All tickets" and "All Tickets" (case-insensitive)
+        if "support tickets" in message_lower or "all tickets" in message_lower:
+            if not SUPPORT_TICKETS:
+                return "There are no support tickets at the moment."
+            response = "🎫 **All Support Tickets:**\n"
+            for idx, t in enumerate(SUPPORT_TICKETS, 1):
+                response += (
+                    f"{idx}. **Ticket No:** {t['ticket_no']}\n"
+                    f"   **User:** {t['username']}\n"
+                    f"   **Category:** {t['category']}\n"
+                    f"   **Issue:** {t['description']}\n"
+                    f"   **Created Date:** {t['created_at']}\n"
+                    f"   **Current Status:** {t['status']}\n"
+                    f"   **Assigned To:** {t.get('assigned_to', get_ticket_assigned_to(t))}\n"
+                    f"   **Updates/Comments:** {t.get('updates', get_ticket_updates(t))}\n"
+                    f"   To approve: type `approve ticket {idx}`\n"
+                    f"   To close: type `close ticket {idx}`\n\n"
+                )
+            return response
+
+        # HR: Approve or close a support ticket
+        if message.lower().startswith("approve ticket ") or message.lower().startswith("close ticket "):
+            parts = message.lower().split()
+            if len(parts) == 3 and parts[2].isdigit():
+                idx = int(parts[2]) - 1
+                if 0 <= idx < len(SUPPORT_TICKETS):
+                    ticket = SUPPORT_TICKETS[idx]
+                    if message.lower().startswith("approve ticket "):
+                        ticket["status"] = "Resolved"
+                        ticket["updates"] = "Ticket approved and resolved by HR."
+                        return f"Ticket {ticket['ticket_no']} has been approved and marked as resolved."
+                    else:
+                        # Prompt for comments/feedback before closing
+                        LEAVE_STATE[username] = {"close_ticket_idx": idx}
+                        return (
+                            f"Please provide comments/feedback for closing Ticket {ticket['ticket_no']}.\n"
+                            "Type your comments below."
+                        )
+                else:
+                    return "Invalid ticket number."
+            else:
+                return "Invalid command. Use `approve ticket <number>` or `close ticket <number>`."
+
+        # Handle HR feedback/comments for closing ticket
+        state = LEAVE_STATE.get(username, {})
+        if "close_ticket_idx" in state:
+            idx = state["close_ticket_idx"]
+            if 0 <= idx < len(SUPPORT_TICKETS):
+                ticket = SUPPORT_TICKETS[idx]
+                ticket["status"] = "Closed"
+                ticket["updates"] = f"Ticket closed by HR. Comments: {message.strip()}"
+                LEAVE_STATE.pop(username, None)
+                return f"Ticket {ticket['ticket_no']} has been closed with your comments."
+            else:
+                LEAVE_STATE.pop(username, None)
+                return "Invalid ticket reference for closing."
+
+    # Default response for unrecognized input
+    return "🤖 **HR Assistant**\n\n" \
+           "I can help you with:\n" \
+           "• 👤 Your personal information\n" \
+           "• 💰 Salary details\n" \
+           "• 🏖️ Leave balance and applications\n" \
+           "• 📊 Attendance tracking\n" \
+           "• 🏥 Benefits information\n" \
+           "• 📋 Company policies\n\n" \
+           "What would you like to know about?"
 
 def generate_attendance_data(emp_id, days=30):
     """Generate mock attendance data for an employee"""
